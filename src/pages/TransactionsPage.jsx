@@ -21,31 +21,50 @@ export default function TransactionsPage() {
   const [filterPerson, setFilterPerson] = useState('all')
 
   const now = new Date()
+  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
+
+  // Date mode: single month or range
+  const [mode, setMode] = useState('single')
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
+  const [fromMonth, setFromMonth] = useState(1)
+  const [fromYear, setFromYear] = useState(now.getFullYear())
+  const [toMonth, setToMonth] = useState(now.getMonth() + 1)
+  const [toYear, setToYear] = useState(now.getFullYear())
 
   const [form, setForm] = useState({
     type: 'expense', category: '', amount: '', description: '',
     month: now.getMonth() + 1, year: now.getFullYear(),
   })
 
-  useEffect(() => { fetchTransactions() }, [selectedMonth, selectedYear])
+  useEffect(() => { fetchTransactions() }, [mode, selectedMonth, selectedYear, fromMonth, fromYear, toMonth, toYear])
 
   async function fetchTransactions() {
     setLoading(true)
     setFetchError('')
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('month', selectedMonth)
-      .eq('year', selectedYear)
-      .order('created_at', { ascending: false })
+    let query = supabase.from('transactions').select('*')
+
+    if (mode === 'single') {
+      query = query.eq('month', selectedMonth).eq('year', selectedYear)
+    } else {
+      query = query.gte('year', fromYear).lte('year', toYear)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
     if (error) { setFetchError('Failed to load transactions. Please refresh.'); setLoading(false); return }
 
-    setTransactions(data || [])
+    let rows = data || []
+    if (mode === 'range') {
+      rows = rows.filter(t => {
+        const tKey = t.year * 100 + t.month
+        return tKey >= fromYear * 100 + fromMonth && tKey <= toYear * 100 + toMonth
+      })
+    }
+
+    setTransactions(rows)
 
     // Fetch profiles for all users in this data
-    const uniqueIds = [...new Set((data || []).map(t => t.user_id))]
+    const uniqueIds = [...new Set(rows.map(t => t.user_id))]
     if (uniqueIds.length > 0) {
       const { data: profileRows } = await supabase.from('profiles').select('id, first_name').in('id', uniqueIds)
       const map = {}
@@ -100,7 +119,6 @@ export default function TransactionsPage() {
 
   const categories = form.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
   const editCategories = editForm.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
-  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
 
   // All unique categories and persons in current data (for filter dropdowns)
   const allCategories = [...new Set(transactions.map(t => t.category))].sort()
@@ -121,23 +139,61 @@ export default function TransactionsPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold text-gray-900">Transactions</h2>
-        <div className="flex gap-2 flex-wrap">
-          <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
-          <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            {years.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <button onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <PlusCircle size={16} />
-            Add Entry
-          </button>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-2xl font-bold text-gray-900">Transactions</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
+              <button onClick={() => setMode('single')}
+                className={`px-4 py-2 font-medium transition-colors ${mode === 'single' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                Single Month
+              </button>
+              <button onClick={() => setMode('range')}
+                className={`px-4 py-2 font-medium transition-colors ${mode === 'range' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                Date Range
+              </button>
+            </div>
+            <button onClick={() => setShowForm(!showForm)}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <PlusCircle size={16} />
+              Add Entry
+            </button>
+          </div>
         </div>
+
+        {mode === 'single' ? (
+          <div className="flex gap-2">
+            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+            <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <span className="text-sm font-medium text-gray-500">From</span>
+            <select value={fromMonth} onChange={e => setFromMonth(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+            <select value={fromYear} onChange={e => setFromYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <span className="text-sm font-medium text-gray-500">To</span>
+            <select value={toMonth} onChange={e => setToMonth(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+            <select value={toYear} onChange={e => setToYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -151,7 +207,7 @@ export default function TransactionsPage() {
           <p className="text-2xl font-bold text-red-700 mt-1">${totalExpenses.toFixed(2)}</p>
         </div>
         <div className={`${totalIncome - totalExpenses >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'} border rounded-xl p-4`}>
-          <p className={`text-xs font-medium uppercase tracking-wide ${totalIncome - totalExpenses >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net</p>
+          <p className={`text-xs font-medium uppercase tracking-wide ${totalIncome - totalExpenses >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net Savings</p>
           <p className={`text-2xl font-bold mt-1 ${totalIncome - totalExpenses >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
             ${(totalIncome - totalExpenses).toFixed(2)}
           </p>
@@ -252,17 +308,17 @@ export default function TransactionsPage() {
           <div className="p-8 text-center text-gray-500">Loading...</div>
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-gray-400">
-            <p className="text-lg">{hasActiveFilter ? 'No entries match your filters' : `No entries for ${MONTHS[selectedMonth - 1]} ${selectedYear}`}</p>
+            <p className="text-lg">{hasActiveFilter ? 'No entries match your filters' : `No entries for ${mode === 'single' ? `${MONTHS[selectedMonth - 1]} ${selectedYear}` : 'the selected range'}`}</p>
             <p className="text-sm mt-1">{hasActiveFilter ? 'Try clearing your filters' : 'Click "Add Entry" to get started'}</p>
           </div>
         ) : (
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Added by</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Type</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Category</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Description</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Added by</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Amount</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -274,6 +330,7 @@ export default function TransactionsPage() {
 
                 return isEditing ? (
                   <tr key={t.id} className="bg-indigo-50">
+                    <td className="px-4 py-2 text-sm text-gray-500">{getPersonName(t.user_id)}</td>
                     <td className="px-4 py-2">
                       <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value, category: '' })}
                         className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -291,7 +348,6 @@ export default function TransactionsPage() {
                       <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                         maxLength={200} className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">{getPersonName(t.user_id)}</td>
                     <td className="px-4 py-2">
                       <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
                         min="0.01" step="0.01" max="9999999"
@@ -306,6 +362,12 @@ export default function TransactionsPage() {
                   </tr>
                 ) : (
                   <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        t.user_id === user.id ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'}`}>
+                        {getPersonName(t.user_id)}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         t.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -314,12 +376,6 @@ export default function TransactionsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">{t.category}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{t.description || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        t.user_id === user.id ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'}`}>
-                        {getPersonName(t.user_id)}
-                      </span>
-                    </td>
                     <td className={`px-4 py-3 text-sm font-semibold text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                       {t.type === 'income' ? '+' : '-'}${Number(t.amount).toFixed(2)}
                     </td>
