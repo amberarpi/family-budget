@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, MONTHS } from '../lib/constants'
-import { PlusCircle, Trash2, ChevronDown } from 'lucide-react'
+import { PlusCircle, Trash2, Pencil, X, Check } from 'lucide-react'
 
 export default function TransactionsPage() {
   const { user } = useAuth()
@@ -10,6 +10,8 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState({})
 
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
@@ -61,7 +63,35 @@ export default function TransactionsPage() {
     fetchTransactions()
   }
 
+  function startEdit(t) {
+    setEditingId(t.id)
+    setEditForm({
+      type: t.type,
+      category: t.category,
+      amount: t.amount,
+      description: t.description || '',
+    })
+  }
+
+  async function handleEditSave(id) {
+    const { error } = await supabase
+      .from('transactions')
+      .update({
+        type: editForm.type,
+        category: editForm.category,
+        amount: parseFloat(editForm.amount),
+        description: editForm.description,
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+    if (!error) {
+      setEditingId(null)
+      fetchTransactions()
+    }
+  }
+
   const categories = form.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
+  const editCategories = editForm.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
   const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
@@ -113,7 +143,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-        {fetchError && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{fetchError}</p>}
+      {fetchError && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{fetchError}</p>}
 
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
@@ -206,32 +236,107 @@ export default function TransactionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {transactions.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      t.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {t.type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{t.category}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{t.description || '—'}</td>
-                  <td className={`px-4 py-3 text-sm font-semibold text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {t.type === 'income' ? '+' : '-'}${Number(t.amount).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {t.user_id === user.id && (
-                      <button
-                        onClick={() => handleDelete(t.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
+              {transactions.map(t => {
+                const isEditing = editingId === t.id
+                const isOwner = t.user_id === user.id
+
+                return isEditing ? (
+                  <tr key={t.id} className="bg-indigo-50">
+                    <td className="px-4 py-2">
+                      <select
+                        value={editForm.type}
+                        onChange={e => setEditForm({ ...editForm, type: e.target.value, category: '' })}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                        <option value="expense">expense</option>
+                        <option value="income">income</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <select
+                        value={editForm.category}
+                        onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        {editCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        value={editForm.description}
+                        onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                        maxLength={200}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="number"
+                        value={editForm.amount}
+                        onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
+                        min="0.01"
+                        step="0.01"
+                        max="9999999"
+                        className="border border-gray-300 rounded px-2 py-1 text-sm w-24 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditSave(t.id)}
+                          className="text-green-600 hover:text-green-700 transition-colors"
+                          title="Save"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Cancel"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        t.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {t.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{t.category}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{t.description || '—'}</td>
+                    <td className={`px-4 py-3 text-sm font-semibold text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {t.type === 'income' ? '+' : '-'}${Number(t.amount).toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isOwner && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => startEdit(t)}
+                            className="text-gray-400 hover:text-indigo-500 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(t.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
