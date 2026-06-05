@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, MONTHS } from '../lib/constants'
-import { PlusCircle, Trash2, Pencil, X, Check, Filter } from 'lucide-react'
+import { PlusCircle, Trash2, Pencil, X, Check, Filter, Download } from 'lucide-react'
 
 export default function TransactionsPage() {
   const { user } = useAuth()
@@ -117,6 +117,29 @@ export default function TransactionsPage() {
     else { setEditingId(null); fetchTransactions() }
   }
 
+  function exportToCSV() {
+    const headers = ['Added By', 'Type', 'Category', 'Description', 'Amount', 'Month', 'Year']
+    const rows = filtered.map(t => [
+      getPersonName(t.user_id),
+      t.type,
+      t.category,
+      t.description || '',
+      Number(t.amount).toFixed(2),
+      MONTHS[t.month - 1],
+      t.year,
+    ])
+    const csv = [headers, ...rows]
+      .map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `transactions-${mode === 'single' ? `${MONTHS[selectedMonth - 1]}-${selectedYear}` : `${MONTHS[fromMonth - 1]}-${fromYear}-to-${MONTHS[toMonth - 1]}-${toYear}`}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const categories = form.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
   const editCategories = editForm.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
 
@@ -158,6 +181,13 @@ export default function TransactionsPage() {
               <PlusCircle size={16} />
               Add Entry
             </button>
+            {filtered.length > 0 && (
+              <button onClick={exportToCSV}
+                className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                <Download size={16} />
+                Export CSV
+              </button>
+            )}
           </div>
         </div>
 
