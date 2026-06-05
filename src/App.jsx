@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage'
 import TransactionsPage from './pages/TransactionsPage'
 import AnalysisPage from './pages/AnalysisPage'
 import VacationPage from './pages/VacationPage'
+import ProfilePage from './pages/ProfilePage'
 
 function AppRoutes() {
   const { user, loading } = useAuth()
@@ -27,6 +28,7 @@ function AppRoutes() {
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/vacation" element={<VacationPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

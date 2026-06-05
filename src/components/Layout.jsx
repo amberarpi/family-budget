@@ -1,15 +1,17 @@
 import { useAuth } from '../contexts/AuthContext'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ArrowLeftRight, PieChart, Plane, LogOut, DollarSign } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, PieChart, Plane, LogOut, DollarSign, UserCircle } from 'lucide-react'
 
 export default function Layout({ children }) {
   const { user, signOut } = useAuth()
+
 
   const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
     { to: '/analysis', label: 'Analysis', icon: PieChart },
     { to: '/vacation', label: 'Vacations', icon: Plane },
+    { to: '/profile', label: 'Profile', icon: UserCircle },
   ]
 
   return (
@@ -20,7 +22,7 @@ export default function Layout({ children }) {
             <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
               <DollarSign size={18} />
             </div>
-            <span className="font-bold text-gray-900 text-lg">Family Budget</span>
+            <span className="font-bold text-gray-900 text-lg">Amber & Nutan's Expenses</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500 hidden sm:block">{user?.email}</span>
