@@ -1,10 +1,25 @@
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, ArrowLeftRight, PieChart, Plane, LogOut, DollarSign, UserCircle } from 'lucide-react'
 
 export default function Layout({ children }) {
   const { user, signOut } = useAuth()
+  const [firstName, setFirstName] = useState('')
 
+  useEffect(() => {
+    async function loadProfile() {
+      const { data } = await supabase.from('profiles').select('first_name').eq('id', user.id).single()
+      if (data?.first_name) setFirstName(data.first_name)
+      else {
+        // fallback to email prefix if no name set yet
+        const part = user.email.split('@')[0]
+        setFirstName(part.charAt(0).toUpperCase() + part.slice(1))
+      }
+    }
+    loadProfile()
+  }, [user])
 
   const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -22,10 +37,10 @@ export default function Layout({ children }) {
             <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
               <DollarSign size={18} />
             </div>
-            <span className="font-bold text-gray-900 text-lg">Amber & Nutan's Expenses</span>
+            <span className="font-bold text-gray-900 text-lg">Welcome, {firstName}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500 hidden sm:block">{user?.email}</span>
+            <span className="text-sm text-gray-500 hidden sm:block">{firstName}</span>
             <button
               onClick={signOut}
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition-colors"

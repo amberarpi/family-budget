@@ -78,7 +78,7 @@ export default function VacationPage() {
 
   function calcMonthlySavings(goal) {
     const today = new Date()
-    const target = new Date(goal.target_date)
+    const target = new Date(goal.target_date + 'T12:00:00')
     const remaining = goal.target_amount - goal.saved_amount
     const months = Math.max(1,
       (target.getFullYear() - today.getFullYear()) * 12 + (target.getMonth() - today.getMonth())
@@ -177,7 +177,7 @@ export default function VacationPage() {
           {goals.map(goal => {
             const { monthly, months, remaining } = calcMonthlySavings(goal)
             const progress = Math.min(100, (goal.saved_amount / goal.target_amount) * 100)
-            const isPast = new Date(goal.target_date) < new Date()
+            const isPast = new Date(goal.target_date + 'T12:00:00') < new Date()
             const isOwner = goal.user_id === user.id
             const isEditing = editingGoal === goal.id
 
@@ -267,7 +267,7 @@ export default function VacationPage() {
                       />
                     ) : (
                       <span className={`font-medium ${isPast ? 'text-orange-600' : 'text-gray-800'}`}>
-                        {new Date(goal.target_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric', day: 'numeric' })}
+                        {new Date(goal.target_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric', day: 'numeric' })}
                         {isPast && ' (past)'}
                       </span>
                     )}
