@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script>
+      // Redirect all 404s back to index.html preserving the path
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+      var redirectUrl = '/family-budget/?redirect=' + encodeURIComponent(path + search + hash);
+      window.location.replace(redirectUrl);
+    </script>
+  </head>
+  <body></body>
+</html>

@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://*.supabase.co; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
     <title>Family Budget</title>
+    <script>
+      // Handle redirect from 404.html
+      var redirect = new URLSearchParams(window.location.search).get('redirect');
+      if (redirect) {
+        window.history.replaceState(null, '', redirect);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
