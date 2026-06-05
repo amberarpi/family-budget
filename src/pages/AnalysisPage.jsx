@@ -6,44 +6,95 @@ import {
   BarChart, Bar, XAxis, YAxis
 } from 'recharts'
 
+const now = new Date()
+const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
+
+function monthKey(month, year) {
+  return `${MONTHS[month - 1].slice(0, 3)} ${year}`
+}
+
 export default function AnalysisPage() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
-  const now = new Date()
+
+  // Single month mode
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
 
-  useEffect(() => {
-    fetchData()
-  }, [selectedMonth, selectedYear])
+  // Range mode
+  const [mode, setMode] = useState('single') // 'single' | 'range'
+  const [fromMonth, setFromMonth] = useState(1)
+  const [fromYear, setFromYear] = useState(now.getFullYear())
+  const [toMonth, setToMonth] = useState(now.getMonth() + 1)
+  const [toYear, setToYear] = useState(now.getFullYear())
+
+  useEffect(() => { fetchData() }, [selectedMonth, selectedYear, mode, fromMonth, fromYear, toMonth, toYear])
 
   async function fetchData() {
     setLoading(true)
     setFetchError('')
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('month', selectedMonth)
-      .eq('year', selectedYear)
-    if (error) setFetchError('Failed to load data. Please refresh.')
-    else setTransactions(data || [])
+    let query = supabase.from('transactions').select('*')
+
+    if (mode === 'single') {
+      query = query.eq('month', selectedMonth).eq('year', selectedYear)
+    } else {
+      // Fetch all transactions in the year range and filter client-side
+      query = query.gte('year', fromYear).lte('year', toYear)
+    }
+
+    const { data, error } = await query
+    if (error) { setFetchError('Failed to load data. Please refresh.'); setLoading(false); return }
+
+    if (mode === 'range') {
+      // Filter to only months within the range
+      const filtered = (data || []).filter(t => {
+        const tKey = t.year * 100 + t.month
+        const fromKey = fromYear * 100 + fromMonth
+        const toKey = toYear * 100 + toMonth
+        return tKey >= fromKey && tKey <= toKey
+      })
+      setTransactions(filtered)
+    } else {
+      setTransactions(data || [])
+    }
     setLoading(false)
   }
 
   const expenses = transactions.filter(t => t.type === 'expense')
   const totalExpenses = expenses.reduce((s, t) => s + Number(t.amount), 0)
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
 
+  // Aggregate by category (for pie + bar + detail)
   const byCategory = expenses.reduce((acc, t) => {
     acc[t.category] = (acc[t.category] || 0) + Number(t.amount)
     return acc
   }, {})
-
   const pieData = Object.entries(byCategory)
     .map(([name, value]) => ({ name, value: parseFloat(value.toFixed(2)) }))
     .sort((a, b) => b.value - a.value)
 
-  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
+  // Range: monthly comparison data
+  function getRangeMonths() {
+    const months = []
+    let y = fromYear, m = fromMonth
+    while (y * 100 + m <= toYear * 100 + toMonth) {
+      months.push({ month: m, year: y, label: monthKey(m, y) })
+      m++
+      if (m > 12) { m = 1; y++ }
+    }
+    return months
+  }
+
+  const rangeMonths = mode === 'range' ? getRangeMonths() : []
+  const rangeChartData = rangeMonths.map(({ month, year, label }) => {
+    const monthTx = transactions.filter(t => t.month === month && t.year === year)
+    return {
+      label,
+      Income: monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+      Expenses: monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+    }
+  })
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -58,26 +109,65 @@ export default function AnalysisPage() {
     return null
   }
 
+  const rangeLabel = mode === 'range'
+    ? `${monthKey(fromMonth, fromYear)} – ${monthKey(toMonth, toYear)}`
+    : `${MONTHS[selectedMonth - 1]} ${selectedYear}`
+
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold text-gray-900">Spending Analysis</h2>
-        <div className="flex gap-2">
-          <select
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
-          <select
-            value={selectedYear}
-            onChange={e => setSelectedYear(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {years.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+      {/* Header + filters */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Spending Analysis</h2>
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
+            <button
+              onClick={() => setMode('single')}
+              className={`px-4 py-2 font-medium transition-colors ${mode === 'single' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            >
+              Single Month
+            </button>
+            <button
+              onClick={() => setMode('range')}
+              className={`px-4 py-2 font-medium transition-colors ${mode === 'range' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            >
+              Date Range
+            </button>
+          </div>
         </div>
+
+        {mode === 'single' ? (
+          <div className="flex gap-2">
+            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+            <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <span className="text-sm font-medium text-gray-500">From</span>
+            <select value={fromMonth} onChange={e => setFromMonth(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+            <select value={fromYear} onChange={e => setFromYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <span className="text-sm font-medium text-gray-500">To</span>
+            <select value={toMonth} onChange={e => setToMonth(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+            <select value={toYear} onChange={e => setToYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -86,31 +176,65 @@ export default function AnalysisPage() {
         <div className="text-center py-12 text-red-500">{fetchError}</div>
       ) : expenses.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400">
-          <p className="text-lg">No expense data for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
+          <p className="text-lg">No expense data for {rangeLabel}</p>
           <p className="text-sm mt-1">Add expenses in the Transactions tab to see analysis</p>
         </div>
       ) : (
         <>
+          {/* Summary stats */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <p className="text-xs font-medium text-green-700 uppercase tracking-wide">Total Income</p>
+              <p className="text-2xl font-bold text-green-700 mt-1">${totalIncome.toFixed(2)}</p>
+              <p className="text-xs text-green-600 mt-1">{rangeLabel}</p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-xs font-medium text-red-700 uppercase tracking-wide">Total Expenses</p>
+              <p className="text-2xl font-bold text-red-700 mt-1">${totalExpenses.toFixed(2)}</p>
+              <p className="text-xs text-red-600 mt-1">{rangeLabel}</p>
+            </div>
+            <div className={`${totalIncome - totalExpenses >= 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-orange-50 border-orange-200'} border rounded-xl p-4`}>
+              <p className={`text-xs font-medium uppercase tracking-wide ${totalIncome - totalExpenses >= 0 ? 'text-indigo-700' : 'text-orange-700'}`}>Net</p>
+              <p className={`text-2xl font-bold mt-1 ${totalIncome - totalExpenses >= 0 ? 'text-indigo-700' : 'text-orange-700'}`}>
+                ${Math.abs(totalIncome - totalExpenses).toFixed(2)}
+              </p>
+              <p className={`text-xs mt-1 ${totalIncome - totalExpenses >= 0 ? 'text-indigo-600' : 'text-orange-600'}`}>{rangeLabel}</p>
+            </div>
+          </div>
+
+          {/* Range: month-by-month comparison chart */}
+          {mode === 'range' && rangeChartData.length > 1 && (
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+              <h3 className="font-semibold text-gray-900 mb-4">Month-by-Month Comparison</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={rangeChartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${v}`} />
+                  <Tooltip formatter={v => `$${Number(v).toFixed(2)}`} />
+                  <Legend />
+                  <Bar dataKey="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Expenses" fill="#f87171" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Pie + bar charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-1">Spending Breakdown</h3>
               <p className="text-sm text-gray-500 mb-4">Total: ${totalExpenses.toFixed(2)}</p>
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
+                  <Pie data={pieData} cx="50%" cy="45%" outerRadius={90} dataKey="value" label={false}>
                     {pieData.map((entry, i) => (
                       <Cell key={i} fill={CATEGORY_COLORS[entry.name] || '#9ca3af'} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
+                  <Legend layout="horizontal" verticalAlign="bottom" align="center"
+                    formatter={(value) => <span style={{ fontSize: 12, color: '#374151' }}>{value}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -132,6 +256,7 @@ export default function AnalysisPage() {
             </div>
           </div>
 
+          {/* Category detail */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
             <h3 className="font-semibold text-gray-900 mb-4">Category Detail</h3>
             <div className="space-y-3">
@@ -144,19 +269,14 @@ export default function AnalysisPage() {
                       <span className="text-gray-500">${item.value.toFixed(2)} ({pct.toFixed(1)}%)</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: CATEGORY_COLORS[item.name] || '#9ca3af'
-                        }}
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: CATEGORY_COLORS[item.name] || '#9ca3af' }}
                       />
                     </div>
                   </div>
                 )
               })}
             </div>
-
             {pieData.length > 0 && (
               <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-sm font-medium text-amber-800">
