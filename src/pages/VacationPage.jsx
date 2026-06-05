@@ -7,6 +7,7 @@ export default function VacationPage() {
   const { user } = useAuth()
   const [goals, setGoals] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingSaved, setEditingSaved] = useState(null)
   const [editingGoal, setEditingGoal] = useState(null)
@@ -19,8 +20,10 @@ export default function VacationPage() {
 
   async function fetchGoals() {
     setLoading(true)
-    const { data } = await supabase.from('vacation_goals').select('*').order('target_date')
-    setGoals(data || [])
+    setFetchError('')
+    const { data, error } = await supabase.from('vacation_goals').select('*').order('target_date')
+    if (error) setFetchError('Failed to load goals. Please refresh.')
+    else setGoals(data || [])
     setLoading(false)
   }
 
@@ -44,7 +47,10 @@ export default function VacationPage() {
   }
 
   async function handleUpdateSaved(id, amount) {
-    await supabase.from('vacation_goals').update({ saved_amount: parseFloat(amount) }).eq('id', id)
+    await supabase.from('vacation_goals')
+      .update({ saved_amount: parseFloat(amount) })
+      .eq('id', id)
+      .eq('user_id', user.id)
     setEditingSaved(null)
     fetchGoals()
   }
@@ -166,6 +172,8 @@ export default function VacationPage() {
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading...</div>
+      ) : fetchError ? (
+        <div className="text-center py-12 text-red-500">{fetchError}</div>
       ) : goals.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400">
           <Plane size={48} className="mx-auto mb-4 opacity-30" />
@@ -295,6 +303,7 @@ export default function VacationPage() {
                           defaultValue={goal.saved_amount}
                           step="0.01"
                           min="0"
+                          max="9999999"
                           className="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                         <button type="submit" className="px-2 py-1 text-xs text-white bg-indigo-600 rounded-lg">Save</button>

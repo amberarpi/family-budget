@@ -9,7 +9,7 @@
     <script>
       // Handle redirect from 404.html
       var redirect = new URLSearchParams(window.location.search).get('redirect');
-      if (redirect) {
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
         window.history.replaceState(null, '', redirect);
       }
     </script>

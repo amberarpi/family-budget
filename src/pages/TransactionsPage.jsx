@@ -9,6 +9,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
+  const [mutateError, setMutateError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({})
@@ -46,12 +47,14 @@ export default function TransactionsPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    setMutateError('')
     const { error } = await supabase.from('transactions').insert({
       ...form,
       amount: parseFloat(form.amount),
       user_id: user.id,
     })
-    if (!error) {
+    if (error) setMutateError('Failed to save entry. Please try again.')
+    else {
       setShowForm(false)
       setForm({ type: 'expense', category: '', amount: '', description: '', month: selectedMonth, year: selectedYear })
       fetchTransactions()
@@ -59,8 +62,9 @@ export default function TransactionsPage() {
   }
 
   async function handleDelete(id) {
-    await supabase.from('transactions').delete().eq('id', id).eq('user_id', user.id)
-    fetchTransactions()
+    const { error } = await supabase.from('transactions').delete().eq('id', id).eq('user_id', user.id)
+    if (error) setMutateError('Failed to delete entry. Please try again.')
+    else fetchTransactions()
   }
 
   function startEdit(t) {
@@ -84,7 +88,8 @@ export default function TransactionsPage() {
       })
       .eq('id', id)
       .eq('user_id', user.id)
-    if (!error) {
+    if (error) setMutateError('Failed to update entry. Please try again.')
+    else {
       setEditingId(null)
       fetchTransactions()
     }
@@ -144,6 +149,7 @@ export default function TransactionsPage() {
       </div>
 
       {fetchError && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{fetchError}</p>}
+      {mutateError && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{mutateError}</p>}
 
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
