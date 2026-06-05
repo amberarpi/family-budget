@@ -8,6 +8,7 @@ export default function TransactionsPage() {
   const { user } = useAuth()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
   const [showForm, setShowForm] = useState(false)
 
   const now = new Date()
@@ -29,13 +30,15 @@ export default function TransactionsPage() {
 
   async function fetchTransactions() {
     setLoading(true)
+    setFetchError('')
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('month', selectedMonth)
       .eq('year', selectedYear)
       .order('created_at', { ascending: false })
-    if (!error) setTransactions(data || [])
+    if (error) setFetchError('Failed to load transactions. Please refresh.')
+    else setTransactions(data || [])
     setLoading(false)
   }
 
@@ -54,7 +57,7 @@ export default function TransactionsPage() {
   }
 
   async function handleDelete(id) {
-    await supabase.from('transactions').delete().eq('id', id)
+    await supabase.from('transactions').delete().eq('id', id).eq('user_id', user.id)
     fetchTransactions()
   }
 
@@ -110,6 +113,8 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+        {fetchError && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{fetchError}</p>}
+
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <h3 className="font-semibold text-gray-900 mb-4">Add New Entry</h3>
@@ -144,6 +149,7 @@ export default function TransactionsPage() {
                 required
                 min="0.01"
                 step="0.01"
+                max="9999999"
                 value={form.amount}
                 onChange={e => setForm({ ...form, amount: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -158,6 +164,7 @@ export default function TransactionsPage() {
                 onChange={e => setForm({ ...form, description: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. Whole Foods run"
+                maxLength={200}
               />
             </div>
             <div className="sm:col-span-2 flex gap-3 justify-end">

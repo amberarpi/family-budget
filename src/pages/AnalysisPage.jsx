@@ -9,6 +9,7 @@ import {
 export default function AnalysisPage() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
@@ -19,12 +20,14 @@ export default function AnalysisPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase
+    setFetchError('')
+    const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('month', selectedMonth)
       .eq('year', selectedYear)
-    setTransactions(data || [])
+    if (error) setFetchError('Failed to load data. Please refresh.')
+    else setTransactions(data || [])
     setLoading(false)
   }
 
@@ -79,6 +82,8 @@ export default function AnalysisPage() {
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading...</div>
+      ) : fetchError ? (
+        <div className="text-center py-12 text-red-500">{fetchError}</div>
       ) : expenses.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400">
           <p className="text-lg">No expense data for {MONTHS[selectedMonth - 1]} {selectedYear}</p>

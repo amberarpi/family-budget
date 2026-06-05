@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 export default function DashboardPage() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
   const now = new Date()
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
 
@@ -16,11 +17,13 @@ export default function DashboardPage() {
 
   async function fetchYearData() {
     setLoading(true)
-    const { data: rows } = await supabase
+    setFetchError('')
+    const { data: rows, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('year', selectedYear)
-    setData(rows || [])
+    if (error) setFetchError('Failed to load data. Please refresh.')
+    else setData(rows || [])
     setLoading(false)
   }
 
@@ -70,6 +73,8 @@ export default function DashboardPage() {
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading...</div>
+      ) : fetchError ? (
+        <div className="text-center py-12 text-red-500">{fetchError}</div>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

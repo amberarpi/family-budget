@@ -37,7 +37,7 @@ export default function VacationPage() {
   }
 
   async function handleDelete(id) {
-    await supabase.from('vacation_goals').delete().eq('id', id)
+    await supabase.from('vacation_goals').delete().eq('id', id).eq('user_id', user.id)
     fetchGoals()
   }
 
@@ -82,6 +82,7 @@ export default function VacationPage() {
                 onChange={e => setForm({ ...form, name: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Summer Europe Trip"
+                maxLength={100}
               />
             </div>
             <div>
@@ -91,6 +92,7 @@ export default function VacationPage() {
                 onChange={e => setForm({ ...form, destination: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Paris, France"
+                maxLength={100}
               />
             </div>
             <div>
@@ -100,6 +102,7 @@ export default function VacationPage() {
                 type="number"
                 min="1"
                 step="0.01"
+                max="9999999"
                 value={form.target_amount}
                 onChange={e => setForm({ ...form, target_amount: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -184,7 +187,7 @@ export default function VacationPage() {
                       <span className="text-gray-500">Saved</span>
                       <button
                         className="font-semibold text-green-600 hover:underline"
-                        onClick={() => setEditingSaved(editingSaved === goal.id ? null : goal.id)}
+                        onClick={() => goal.user_id === user.id && setEditingSaved(editingSaved === goal.id ? null : goal.id)}
                       >
                         ${Number(goal.saved_amount).toFixed(2)}
                       </button>
