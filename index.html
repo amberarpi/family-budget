@@ -9,11 +9,11 @@
     <script>
       // Handle redirect from 404.html
       var redirect = new URLSearchParams(window.location.search).get('redirect');
-      if (redirect) {
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
         window.history.replaceState(null, '', redirect);
       }
     </script>
-    <script type="module" crossorigin src="/family-budget/assets/index-DkG8Qb_O.js"></script>
+    <script type="module" crossorigin src="/family-budget/assets/index-DlZMk70a.js"></script>
     <link rel="stylesheet" crossorigin href="/family-budget/assets/index-DcGp1soj.css">
   </head>
   <body>
