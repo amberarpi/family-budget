@@ -117,17 +117,17 @@ export default function DashboardPage() {
     : `${MONTHS[selectedMonth - 1]} ${selectedYear}`
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className="bg-white border rounded-xl p-5 shadow-sm">
+    <div className="bg-white border rounded-xl p-3 sm:p-5 shadow-sm">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{title}</p>
-          <p className={`text-3xl font-bold mt-1 ${color}`}>${Math.abs(value).toFixed(2)}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide truncate">{title}</p>
+          <p className={`text-lg sm:text-3xl font-bold mt-1 truncate ${color}`}>${Math.abs(value).toFixed(2)}</p>
         </div>
-        <div className={`p-2 rounded-lg ${color === 'text-green-600' ? 'bg-green-100' : color === 'text-red-600' ? 'bg-red-100' : 'bg-indigo-100'}`}>
-          <Icon size={20} className={color} />
+        <div className={`p-2 rounded-lg shrink-0 ml-2 ${color === 'text-green-600' ? 'bg-green-100' : color === 'text-red-600' ? 'bg-red-100' : 'bg-indigo-100'}`}>
+          <Icon size={18} className={color} />
         </div>
       </div>
-      <p className="text-sm text-gray-500 mt-2">{rangeLabel}</p>
+      <p className="text-xs text-gray-500 mt-2 truncate">{rangeLabel}</p>
     </div>
   )
 
@@ -199,17 +199,17 @@ export default function DashboardPage() {
             <StatCard title="Total Income" value={totalIncome} icon={TrendingUp} color="text-green-600" />
             <StatCard title="Total Expenses" value={totalExpenses} icon={TrendingDown} color="text-red-600" />
             <StatCard title="Net Savings" value={net} icon={Wallet} color={net >= 0 ? 'text-indigo-600' : 'text-orange-600'} />
-            <div className="bg-white border rounded-xl p-5 shadow-sm">
+            <div className="bg-white border rounded-xl p-3 sm:p-5 shadow-sm">
               <div className="flex items-start justify-between">
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Entries</p>
-                  <p className="text-3xl font-bold mt-1 text-gray-800">{data.length}</p>
+                  <p className="text-lg sm:text-3xl font-bold mt-1 text-gray-800">{data.length}</p>
                 </div>
-                <div className="p-2 rounded-lg bg-gray-100">
-                  <Users size={20} className="text-gray-600" />
+                <div className="p-2 rounded-lg bg-gray-100 shrink-0 ml-2">
+                  <Users size={18} className="text-gray-600" />
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mt-2">Combined family</p>
+              <p className="text-xs text-gray-500 mt-2">Combined family</p>
             </div>
           </div>
 

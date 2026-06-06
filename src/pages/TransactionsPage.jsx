@@ -227,18 +227,18 @@ export default function TransactionsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <p className="text-xs font-medium text-green-700 uppercase tracking-wide">Total Income</p>
-          <p className="text-2xl font-bold text-green-700 mt-1">${totalIncome.toFixed(2)}</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 sm:p-4">
+          <p className="text-xs font-medium text-green-700 uppercase tracking-wide">Income</p>
+          <p className="text-lg sm:text-2xl font-bold text-green-700 mt-1 truncate">${totalIncome.toFixed(2)}</p>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="text-xs font-medium text-red-700 uppercase tracking-wide">Total Expenses</p>
-          <p className="text-2xl font-bold text-red-700 mt-1">${totalExpenses.toFixed(2)}</p>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4">
+          <p className="text-xs font-medium text-red-700 uppercase tracking-wide">Expenses</p>
+          <p className="text-lg sm:text-2xl font-bold text-red-700 mt-1 truncate">${totalExpenses.toFixed(2)}</p>
         </div>
-        <div className={`${totalIncome - totalExpenses >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'} border rounded-xl p-4`}>
-          <p className={`text-xs font-medium uppercase tracking-wide ${totalIncome - totalExpenses >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net Savings</p>
-          <p className={`text-2xl font-bold mt-1 ${totalIncome - totalExpenses >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+        <div className={`${totalIncome - totalExpenses >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'} border rounded-xl p-3 sm:p-4`}>
+          <p className={`text-xs font-medium uppercase tracking-wide ${totalIncome - totalExpenses >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net</p>
+          <p className={`text-lg sm:text-2xl font-bold mt-1 truncate ${totalIncome - totalExpenses >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
             ${(totalIncome - totalExpenses).toFixed(2)}
           </p>
         </div>
@@ -332,7 +332,7 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Table */}
+      {/* Table — desktop / Card list — mobile */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500">Loading...</div>
@@ -342,86 +342,147 @@ export default function TransactionsPage() {
             <p className="text-sm mt-1">{hasActiveFilter ? 'Try clearing your filters' : 'Click "Add Entry" to get started'}</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Added by</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Type</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Category</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Description</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Amount</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map(t => {
-                const isEditing = editingId === t.id
-                const isOwner = t.user_id === user.id
+          <>
+            {/* Desktop table */}
+            <div className="hidden sm:block">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Added by</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Type</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Category</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Description</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Amount</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map(t => {
+                    const isEditing = editingId === t.id
+                    const isOwner = t.user_id === user.id
+                    return isEditing ? (
+                      <tr key={t.id} className="bg-indigo-50">
+                        <td className="px-4 py-2 text-sm text-gray-500">{getPersonName(t.user_id)}</td>
+                        <td className="px-4 py-2">
+                          <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value, category: '' })}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="expense">expense</option>
+                            <option value="income">income</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-2">
+                          <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            {editCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-4 py-2">
+                          <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                            maxLength={200} className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </td>
+                        <td className="px-4 py-2">
+                          <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
+                            min="0.01" step="0.01" max="9999999"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm w-24 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleEditSave(t.id)} className="text-green-600 hover:text-green-700" title="Save"><Check size={16} /></button>
+                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600" title="Cancel"><X size={16} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.user_id === user.id ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'}`}>
+                            {getPersonName(t.user_id)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {t.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{t.category}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">{t.description || '—'}</td>
+                        <td className={`px-4 py-3 text-sm font-semibold text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          {t.type === 'income' ? '+' : '-'}${Number(t.amount).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {isOwner && (
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => startEdit(t)} className="text-gray-400 hover:text-indigo-500" title="Edit"><Pencil size={15} /></button>
+                              <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-500" title="Delete"><Trash2 size={15} /></button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
 
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-gray-100">
+              {filtered.map(t => {
+                const isOwner = t.user_id === user.id
+                const isEditing = editingId === t.id
                 return isEditing ? (
-                  <tr key={t.id} className="bg-indigo-50">
-                    <td className="px-4 py-2 text-sm text-gray-500">{getPersonName(t.user_id)}</td>
-                    <td className="px-4 py-2">
+                  <div key={t.id} className="p-4 bg-indigo-50 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
                       <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value, category: '' })}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="expense">expense</option>
                         <option value="income">income</option>
                       </select>
-                    </td>
-                    <td className="px-4 py-2">
                       <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         {editCategories.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                    </td>
-                    <td className="px-4 py-2">
-                      <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                        maxLength={200} className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </td>
-                    <td className="px-4 py-2">
+                    </div>
+                    <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                      maxLength={200} placeholder="Description"
+                      className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <div className="flex items-center gap-2">
                       <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
                         min="0.01" step="0.01" max="9999999"
-                        className="border border-gray-300 rounded px-2 py-1 text-sm w-24 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleEditSave(t.id)} className="text-green-600 hover:text-green-700" title="Save"><Check size={16} /></button>
-                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600" title="Cancel"><X size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
+                        className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      <button onClick={() => handleEditSave(t.id)} className="text-green-600 hover:text-green-700 p-1" title="Save"><Check size={18} /></button>
+                      <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1" title="Cancel"><X size={18} /></button>
+                    </div>
+                  </div>
                 ) : (
-                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        t.user_id === user.id ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'}`}>
-                        {getPersonName(t.user_id)}
+                  <div key={t.id} className="p-4 flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.user_id === user.id ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'}`}>
+                          {getPersonName(t.user_id)}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {t.type}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-800">{t.category}</p>
+                      {t.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{t.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-sm font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                        {t.type === 'income' ? '+' : '-'}${Number(t.amount).toFixed(2)}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        t.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {t.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{t.category}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{t.description || '—'}</td>
-                    <td className={`px-4 py-3 text-sm font-semibold text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {t.type === 'income' ? '+' : '-'}${Number(t.amount).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3">
                       {isOwner && (
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => startEdit(t)} className="text-gray-400 hover:text-indigo-500 transition-colors" title="Edit"><Pencil size={15} /></button>
-                          <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={15} /></button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => startEdit(t)} className="text-gray-400 hover:text-indigo-500 p-1" title="Edit"><Pencil size={14} /></button>
+                          <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-500 p-1" title="Delete"><Trash2 size={14} /></button>
                         </div>
                       )}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 )
               })}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>
