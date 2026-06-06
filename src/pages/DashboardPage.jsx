@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [data, setData] = useState([])
   const [profiles, setProfiles] = useState({})
+  const [monthlyBudget, setMonthlyBudget] = useState(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
 
@@ -60,9 +61,12 @@ export default function DashboardPage() {
 
     const uniqueIds = [...new Set(filtered.map(t => t.user_id))]
     if (uniqueIds.length > 0) {
-      const { data: profileRows } = await supabase.from('profiles').select('id, first_name').in('id', uniqueIds)
+      const { data: profileRows } = await supabase.from('profiles').select('id, first_name, monthly_budget').in('id', uniqueIds)
       const map = {}
-      for (const p of profileRows || []) map[p.id] = p.first_name || null
+      for (const p of profileRows || []) {
+        map[p.id] = p.first_name || null
+        if (p.id === user.id && p.monthly_budget) setMonthlyBudget(Number(p.monthly_budget))
+      }
       setProfiles(map)
     }
     setLoading(false)
@@ -212,6 +216,60 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 mt-2">Combined family</p>
             </div>
           </div>
+
+          {/* Budget Advisor */}
+          {monthlyBudget && mode === 'single' && (() => {
+            const myExpenses = data.filter(t => t.user_id === user.id && t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
+            const pct = Math.min(100, (myExpenses / monthlyBudget) * 100)
+            const remaining = monthlyBudget - myExpenses
+            const color = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-400' : 'bg-green-500'
+            const bgColor = pct >= 90 ? 'bg-red-50 border-red-200' : pct >= 70 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'
+            const textColor = pct >= 90 ? 'text-red-700' : pct >= 70 ? 'text-amber-700' : 'text-green-700'
+            const label = pct >= 90 ? 'Critical — almost at limit!' : pct >= 70 ? 'Warning — spending is high' : 'On track'
+            return (
+              <div className={`border rounded-xl p-5 ${bgColor}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className={`font-semibold ${textColor}`}>Budget Advisor — {rangeLabel}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Your personal monthly limit: ${monthlyBudget.toFixed(2)}</p>
+                  </div>
+                  <span className={`text-2xl font-bold ${textColor}`}>{pct.toFixed(0)}%</span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-4 bg-white rounded-full overflow-hidden border border-gray-200 mb-3">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${color}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className={`font-medium ${textColor}`}>{label}</span>
+                  <span className="text-gray-500">
+                    {remaining >= 0
+                      ? <span className="text-gray-700">${remaining.toFixed(2)} remaining</span>
+                      : <span className="text-red-600">Over by ${Math.abs(remaining).toFixed(2)}</span>
+                    }
+                  </span>
+                </div>
+
+                {/* Milestone markers */}
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { label: 'Spent', value: myExpenses, color: textColor },
+                    { label: 'Budget', value: monthlyBudget, color: 'text-gray-600' },
+                    { label: 'Remaining', value: Math.max(0, remaining), color: remaining >= 0 ? 'text-green-600' : 'text-red-600' },
+                  ].map(item => (
+                    <div key={item.label} className="bg-white rounded-lg p-2 border border-gray-100">
+                      <p className="text-xs text-gray-400">{item.label}</p>
+                      <p className={`text-sm font-bold ${item.color}`}>${item.value.toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Individual breakdown */}
           {userIds.length > 0 && (
