@@ -54,11 +54,15 @@ export default function GoalsPage() {
   }
 
   async function handleUpdateSaved(id, amount) {
-    await supabase.from('vacation_goals')
+    const { error } = await supabase.from('vacation_goals')
       .update({ saved_amount: parseFloat(amount) })
       .eq('id', id)
-    setEditingSaved(null)
-    fetchGoals()
+    if (!error) {
+      setEditingSaved(null)
+      fetchGoals()
+    } else {
+      alert(`Failed to update: ${error.message}`)
+    }
   }
 
   function startEditGoal(goal) {
