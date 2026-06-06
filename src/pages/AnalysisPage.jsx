@@ -117,18 +117,18 @@ export default function AnalysisPage() {
     <div className="max-w-5xl mx-auto p-4 space-y-6">
       {/* Header + filters */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Spending Analysis</h2>
-          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 shrink-0">Spending Analysis</h2>
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm shrink-0">
             <button
               onClick={() => setMode('single')}
-              className={`px-4 py-2 font-medium transition-colors ${mode === 'single' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              className={`px-3 py-2 font-medium transition-colors whitespace-nowrap ${mode === 'single' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
             >
               Single Month
             </button>
             <button
               onClick={() => setMode('range')}
-              className={`px-4 py-2 font-medium transition-colors ${mode === 'range' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              className={`px-3 py-2 font-medium transition-colors whitespace-nowrap ${mode === 'range' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
             >
               Date Range
             </button>
@@ -182,23 +182,23 @@ export default function AnalysisPage() {
       ) : (
         <>
           {/* Summary stats */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-              <p className="text-xs font-medium text-green-700 uppercase tracking-wide">Total Income</p>
-              <p className="text-2xl font-bold text-green-700 mt-1">${totalIncome.toFixed(2)}</p>
-              <p className="text-xs text-green-600 mt-1">{rangeLabel}</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 sm:p-4">
+              <p className="text-xs font-medium text-green-700 uppercase tracking-wide">Income</p>
+              <p className="text-lg sm:text-2xl font-bold text-green-700 mt-1 truncate">${totalIncome.toFixed(2)}</p>
+              <p className="text-xs text-green-600 mt-1 truncate">{rangeLabel}</p>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <p className="text-xs font-medium text-red-700 uppercase tracking-wide">Total Expenses</p>
-              <p className="text-2xl font-bold text-red-700 mt-1">${totalExpenses.toFixed(2)}</p>
-              <p className="text-xs text-red-600 mt-1">{rangeLabel}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4">
+              <p className="text-xs font-medium text-red-700 uppercase tracking-wide">Expenses</p>
+              <p className="text-lg sm:text-2xl font-bold text-red-700 mt-1 truncate">${totalExpenses.toFixed(2)}</p>
+              <p className="text-xs text-red-600 mt-1 truncate">{rangeLabel}</p>
             </div>
-            <div className={`${totalIncome - totalExpenses >= 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-orange-50 border-orange-200'} border rounded-xl p-4`}>
+            <div className={`${totalIncome - totalExpenses >= 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-orange-50 border-orange-200'} border rounded-xl p-3 sm:p-4`}>
               <p className={`text-xs font-medium uppercase tracking-wide ${totalIncome - totalExpenses >= 0 ? 'text-indigo-700' : 'text-orange-700'}`}>Net</p>
-              <p className={`text-2xl font-bold mt-1 ${totalIncome - totalExpenses >= 0 ? 'text-indigo-700' : 'text-orange-700'}`}>
+              <p className={`text-lg sm:text-2xl font-bold mt-1 truncate ${totalIncome - totalExpenses >= 0 ? 'text-indigo-700' : 'text-orange-700'}`}>
                 ${Math.abs(totalIncome - totalExpenses).toFixed(2)}
               </p>
-              <p className={`text-xs mt-1 ${totalIncome - totalExpenses >= 0 ? 'text-indigo-600' : 'text-orange-600'}`}>{rangeLabel}</p>
+              <p className={`text-xs mt-1 truncate ${totalIncome - totalExpenses >= 0 ? 'text-indigo-600' : 'text-orange-600'}`}>{rangeLabel}</p>
             </div>
           </div>
 
@@ -224,9 +224,9 @@ export default function AnalysisPage() {
             <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-1">Spending Breakdown</h3>
               <p className="text-sm text-gray-500 mb-4">Total: ${totalExpenses.toFixed(2)}</p>
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="45%" outerRadius={90} dataKey="value" label={false}>
+                  <Pie data={pieData} cx="50%" cy="40%" outerRadius={80} dataKey="value" label={false}>
                     {pieData.map((entry, i) => (
                       <Cell key={i} fill={CATEGORY_COLORS[entry.name] || '#9ca3af'} />
                     ))}
