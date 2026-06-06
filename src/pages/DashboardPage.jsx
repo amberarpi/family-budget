@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { MONTHS } from '../lib/constants'
-import { TrendingUp, TrendingDown, Wallet, Users } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Users, Receipt } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { NavLink } from 'react-router-dom'
 
 const now = new Date()
 const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
@@ -34,8 +35,19 @@ export default function DashboardPage() {
   const [fromYear, setFromYear] = useState(now.getFullYear())
   const [toMonth, setToMonth] = useState(now.getMonth() + 1)
   const [toYear, setToYear] = useState(now.getFullYear())
+  const [unpaidBills, setUnpaidBills] = useState([])
 
   useEffect(() => { fetchData() }, [mode, selectedMonth, selectedYear, fromMonth, fromYear, toMonth, toYear])
+  useEffect(() => { fetchUnpaidBills() }, [selectedMonth, selectedYear])
+
+  async function fetchUnpaidBills() {
+    const [{ data: billRows }, { data: paymentRows }] = await Promise.all([
+      supabase.from('bills').select('*').eq('is_active', true),
+      supabase.from('bill_payments').select('bill_id').eq('month', selectedMonth).eq('year', selectedYear),
+    ])
+    const paidIds = new Set((paymentRows || []).map(p => p.bill_id))
+    setUnpaidBills((billRows || []).filter(b => !paidIds.has(b.id)))
+  }
 
   async function fetchData() {
     setLoading(true)
@@ -232,6 +244,28 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 mt-2">Combined family</p>
             </div>
           </div>
+
+          {/* Unpaid bills reminder */}
+          {mode === 'single' && unpaidBills.length > 0 && (
+            <NavLink to="/bills" className="block">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 hover:bg-amber-100 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Receipt size={20} className="text-amber-600 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">
+                        {unpaidBills.length} unpaid bill{unpaidBills.length > 1 ? 's' : ''} this month
+                      </p>
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        ${unpaidBills.reduce((s, b) => s + Number(b.amount), 0).toFixed(2)} remaining · {unpaidBills.map(b => b.name).join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-amber-600 text-sm font-medium">View →</span>
+                </div>
+              </div>
+            </NavLink>
+          )}
 
           {/* Budget Advisor */}
           {mode === 'single' && (() => {

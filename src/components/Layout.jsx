@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ArrowLeftRight, PieChart, Plane, LogOut, DollarSign, UserCircle, User } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, PieChart, Plane, LogOut, DollarSign, UserCircle, User, Receipt } from 'lucide-react'
 
 export default function Layout({ children }) {
   const { user, signOut } = useAuth()
@@ -29,6 +29,7 @@ export default function Layout({ children }) {
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
     { to: '/analysis', label: 'Analysis', icon: PieChart },
+    { to: '/bills', label: 'Bills', icon: Receipt },
     { to: '/vacation', label: 'Vacations', icon: Plane },
     { to: '/profile', label: 'Profile', icon: UserCircle },
   ]
