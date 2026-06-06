@@ -18,6 +18,8 @@ export default function BillsPage() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ name: '', amount: '', category: 'Utilities', due_day: '1' })
   const [editForm, setEditForm] = useState({})
+  const [payingBill, setPayingBill] = useState(null) // bill being confirmed for payment
+  const [payAmount, setPayAmount] = useState('')
 
   const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
 
@@ -67,16 +69,20 @@ export default function BillsPage() {
     fetchData()
   }
 
-  async function handleMarkPaid(bill) {
-    const existingPayment = payments.find(p => p.bill_id === bill.id)
-    if (existingPayment) return // already paid
+  function openPayDialog(bill) {
+    setPayingBill(bill)
+    setPayAmount(String(bill.amount))
+  }
 
-    // Create a transaction entry
+  async function handleMarkPaid(bill, amount) {
+    const existingPayment = payments.find(p => p.bill_id === bill.id)
+    if (existingPayment) return
+
     const { data: txData, error: txError } = await supabase.from('transactions').insert({
       user_id: user.id,
       type: 'expense',
       category: bill.category,
-      amount: bill.amount,
+      amount: parseFloat(amount),
       description: `${bill.name} — bill payment`,
       month: selectedMonth,
       year: selectedYear,
@@ -84,7 +90,6 @@ export default function BillsPage() {
 
     if (txError) return
 
-    // Record the payment
     await supabase.from('bill_payments').insert({
       bill_id: bill.id,
       user_id: user.id,
@@ -93,6 +98,7 @@ export default function BillsPage() {
       paid_at: new Date().toISOString(),
       transaction_id: txData.id,
     })
+    setPayingBill(null)
     fetchData()
   }
 
@@ -249,7 +255,7 @@ export default function BillsPage() {
                     </div>
                   ) : (
                     <div key={bill.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
-                      <button onClick={() => handleMarkPaid(bill)}
+                      <button onClick={() => openPayDialog(bill)}
                         className="shrink-0 text-gray-300 hover:text-green-500 transition-colors">
                         <Circle size={22} />
                       </button>
@@ -305,6 +311,53 @@ export default function BillsPage() {
             </div>
           )}
         </>
+      )}
+      {/* Pay confirmation dialog */}
+      {payingBill && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900 text-lg mb-1">Mark as Paid</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Confirm the amount paid for <span className="font-medium text-gray-800">{payingBill.name}</span>.
+              You can override if the actual amount differs.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid ($)</label>
+                <input
+                  type="number"
+                  value={payAmount}
+                  onChange={e => setPayAmount(e.target.value)}
+                  min="0.01"
+                  step="0.01"
+                  max="9999999"
+                  autoFocus
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                {parseFloat(payAmount) !== Number(payingBill.amount) && payAmount && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Estimated was ${Number(payingBill.amount).toFixed(2)} — you're paying ${parseFloat(payAmount).toFixed(2)}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPayingBill(null)}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleMarkPaid(payingBill, payAmount)}
+                  disabled={!payAmount || parseFloat(payAmount) <= 0}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-lg"
+                >
+                  Confirm Payment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
