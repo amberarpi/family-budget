@@ -2,21 +2,22 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ArrowLeftRight, PieChart, Plane, LogOut, DollarSign, UserCircle } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, PieChart, Plane, LogOut, DollarSign, UserCircle, User } from 'lucide-react'
 
 export default function Layout({ children }) {
   const { user, signOut } = useAuth()
   const [firstName, setFirstName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState(null)
 
   useEffect(() => {
     async function loadProfile() {
-      const { data } = await supabase.from('profiles').select('first_name').eq('id', user.id).single()
+      const { data } = await supabase.from('profiles').select('first_name, avatar_url').eq('id', user.id).single()
       if (data?.first_name) setFirstName(data.first_name)
       else {
-        // fallback to email prefix if no name set yet
         const part = user.email.split('@')[0]
         setFirstName(part.charAt(0).toUpperCase() + part.slice(1))
       }
+      if (data?.avatar_url) setAvatarUrl(`${data.avatar_url}?t=${Date.now()}`)
     }
     loadProfile()
   }, [user])
@@ -40,7 +41,16 @@ export default function Layout({ children }) {
             <span className="font-bold text-gray-900 text-lg">Welcome, {firstName}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500 hidden sm:block">{firstName}</span>
+            {/* Avatar */}
+            <NavLink to="/profile" className="shrink-0">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center border-2 border-indigo-200">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={16} className="text-indigo-400" />
+                )}
+              </div>
+            </NavLink>
             <button
               onClick={signOut}
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition-colors"
