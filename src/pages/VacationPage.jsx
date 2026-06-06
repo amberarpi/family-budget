@@ -6,6 +6,7 @@ import { PlusCircle, Trash2, Target, PiggyBank, Pencil, X, Check } from 'lucide-
 export default function GoalsPage() {
   const { user } = useAuth()
   const [goals, setGoals] = useState([])
+  const [profiles, setProfiles] = useState({}) // { user_id: first_name }
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -20,8 +21,16 @@ export default function GoalsPage() {
     setLoading(true)
     setFetchError('')
     const { data, error } = await supabase.from('vacation_goals').select('*').order('target_date')
-    if (error) setFetchError('Failed to load goals. Please refresh.')
-    else setGoals(data || [])
+    if (error) { setFetchError('Failed to load goals. Please refresh.'); setLoading(false); return }
+    setGoals(data || [])
+
+    const uniqueIds = [...new Set((data || []).map(g => g.user_id))]
+    if (uniqueIds.length > 0) {
+      const { data: profileRows } = await supabase.from('profiles').select('id, first_name').in('id', uniqueIds)
+      const map = {}
+      for (const p of profileRows || []) map[p.id] = p.first_name || null
+      setProfiles(map)
+    }
     setLoading(false)
   }
 
@@ -48,7 +57,6 @@ export default function GoalsPage() {
     await supabase.from('vacation_goals')
       .update({ saved_amount: parseFloat(amount) })
       .eq('id', id)
-      .eq('user_id', user.id)
     setEditingSaved(null)
     fetchGoals()
   }
@@ -78,6 +86,15 @@ export default function GoalsPage() {
       setEditingGoal(null)
       fetchGoals()
     }
+  }
+
+  function getOwnerName(uid) {
+    if (profiles[uid]) return profiles[uid]
+    if (uid === user.id) {
+      const part = user.email.split('@')[0]
+      return part.charAt(0).toUpperCase() + part.slice(1)
+    }
+    return 'Family Member'
   }
 
   function calcMonthlySavings(goal) {
@@ -215,6 +232,17 @@ export default function GoalsPage() {
                   )}
                 </div>
 
+                {/* Added by badge */}
+                {!isEditing && (
+                  <div className="mb-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      goal.user_id === user.id ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'
+                    }`}>
+                      Added by {getOwnerName(goal.user_id)}
+                    </span>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   {/* Description */}
                   {isEditing ? (
@@ -257,7 +285,7 @@ export default function GoalsPage() {
                       <span className="text-gray-500">Saved</span>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-green-600">${Number(goal.saved_amount).toFixed(2)}</span>
-                        {isOwner && !isEditing && (
+                        {!isEditing && (
                           <button
                             onClick={() => setEditingSaved(editingSaved === goal.id ? null : goal.id)}
                             className="text-gray-400 hover:text-indigo-500 transition-colors"
