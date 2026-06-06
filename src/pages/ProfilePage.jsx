@@ -61,8 +61,20 @@ export default function ProfilePage() {
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath)
     const urlWithBust = `${publicUrl}?t=${Date.now()}`
 
-    await supabase.from('profiles').upsert({ id: user.id, avatar_url: publicUrl })
+    // Use update instead of upsert to avoid overwriting other fields
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: publicUrl })
+      .eq('id', user.id)
+
+    // If no row exists yet, insert it
+    if (updateError) {
+      await supabase.from('profiles').insert({ id: user.id, avatar_url: publicUrl })
+    }
+
     setAvatarUrl(urlWithBust)
+    // Notify Layout to refresh avatar by dispatching a custom event
+    window.dispatchEvent(new Event('avatar-updated'))
     setAvatarLoading(false)
   }
 

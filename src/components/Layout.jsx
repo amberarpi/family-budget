@@ -18,8 +18,11 @@ export default function Layout({ children }) {
         setFirstName(part.charAt(0).toUpperCase() + part.slice(1))
       }
       if (data?.avatar_url) setAvatarUrl(`${data.avatar_url}?t=${Date.now()}`)
+      else setAvatarUrl(null)
     }
     loadProfile()
+    window.addEventListener('avatar-updated', loadProfile)
+    return () => window.removeEventListener('avatar-updated', loadProfile)
   }, [user])
 
   const navItems = [
