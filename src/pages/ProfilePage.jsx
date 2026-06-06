@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { User, KeyRound, CheckCircle, Camera, Target } from 'lucide-react'
+import { User, KeyRound, CheckCircle, Camera } from 'lucide-react'
 
 export default function ProfilePage() {
   const { user } = useAuth()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [monthlyBudget, setMonthlyBudget] = useState('')
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
@@ -28,7 +27,6 @@ export default function ProfilePage() {
       if (data) {
         setFirstName(data.first_name || '')
         setLastName(data.last_name || '')
-        setMonthlyBudget(data.monthly_budget || '')
         if (data.avatar_url) setAvatarUrl(data.avatar_url)
       }
     }
@@ -93,7 +91,6 @@ export default function ProfilePage() {
       id: user.id,
       first_name: firstName.trim(),
       last_name: lastName.trim(),
-      monthly_budget: monthlyBudget ? parseFloat(monthlyBudget) : null,
     })
 
     if (error) setProfileError(error.message)
@@ -202,15 +199,6 @@ export default function ProfilePage() {
                 maxLength={50} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Smith" />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Expense Budget ($)</label>
-            <input type="number" value={monthlyBudget} onChange={e => setMonthlyBudget(e.target.value)}
-              min="1" step="0.01" max="9999999"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="e.g. 3000" />
-            <p className="text-xs text-gray-400 mt-1">Set your monthly spending limit to see budget advisor on the dashboard</p>
           </div>
 
           {profileError && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{profileError}</p>}

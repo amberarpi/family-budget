@@ -17,6 +17,9 @@ export default function DashboardPage() {
   const [data, setData] = useState([])
   const [profiles, setProfiles] = useState({})
   const [monthlyBudget, setMonthlyBudget] = useState(null)
+  const [budgetInput, setBudgetInput] = useState('')
+  const [budgetSaving, setBudgetSaving] = useState(false)
+  const [showBudgetEdit, setShowBudgetEdit] = useState(false)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
 
@@ -61,15 +64,28 @@ export default function DashboardPage() {
 
     const uniqueIds = [...new Set(filtered.map(t => t.user_id))]
     if (uniqueIds.length > 0) {
-      const { data: profileRows } = await supabase.from('profiles').select('id, first_name, monthly_budget').in('id', uniqueIds)
+      const { data: profileRows } = await supabase.from('profiles').select('id, first_name').in('id', uniqueIds)
       const map = {}
-      for (const p of profileRows || []) {
-        map[p.id] = p.first_name || null
-        if (p.id === user.id && p.monthly_budget) setMonthlyBudget(Number(p.monthly_budget))
-      }
+      for (const p of profileRows || []) map[p.id] = p.first_name || null
       setProfiles(map)
     }
+
+    // Load family budget
+    const { data: settings } = await supabase.from('family_settings').select('monthly_budget').eq('id', 1).single()
+    if (settings?.monthly_budget) {
+      setMonthlyBudget(Number(settings.monthly_budget))
+      setBudgetInput(String(settings.monthly_budget))
+    }
     setLoading(false)
+  }
+
+  async function saveBudget() {
+    setBudgetSaving(true)
+    const value = parseFloat(budgetInput)
+    await supabase.from('family_settings').upsert({ id: 1, monthly_budget: value, updated_at: new Date().toISOString() })
+    setMonthlyBudget(value)
+    setShowBudgetEdit(false)
+    setBudgetSaving(false)
   }
 
   function getLabel(uid) {
@@ -218,55 +234,99 @@ export default function DashboardPage() {
           </div>
 
           {/* Budget Advisor */}
-          {monthlyBudget && mode === 'single' && (() => {
-            const myExpenses = data.filter(t => t.user_id === user.id && t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
-            const pct = Math.min(100, (myExpenses / monthlyBudget) * 100)
-            const remaining = monthlyBudget - myExpenses
+          {mode === 'single' && (() => {
+            const familyExpenses = data.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
+            const pct = monthlyBudget ? Math.min(100, (familyExpenses / monthlyBudget) * 100) : 0
+            const remaining = monthlyBudget ? monthlyBudget - familyExpenses : 0
             const color = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-400' : 'bg-green-500'
-            const bgColor = pct >= 90 ? 'bg-red-50 border-red-200' : pct >= 70 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'
-            const textColor = pct >= 90 ? 'text-red-700' : pct >= 70 ? 'text-amber-700' : 'text-green-700'
-            const label = pct >= 90 ? 'Critical — almost at limit!' : pct >= 70 ? 'Warning — spending is high' : 'On track'
+            const bgColor = pct >= 90 ? 'bg-red-50 border-red-200' : pct >= 70 ? 'bg-amber-50 border-amber-200' : 'bg-indigo-50 border-indigo-200'
+            const textColor = pct >= 90 ? 'text-red-700' : pct >= 70 ? 'text-amber-700' : 'text-indigo-700'
+            const statusLabel = pct >= 90 ? 'Critical — almost at limit!' : pct >= 70 ? 'Warning — spending is high' : 'On track'
+
             return (
-              <div className={`border rounded-xl p-5 ${bgColor}`}>
+              <div className={`border rounded-xl p-5 ${monthlyBudget ? bgColor : 'bg-gray-50 border-gray-200'}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className={`font-semibold ${textColor}`}>Budget Advisor — {rangeLabel}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Your personal monthly limit: ${monthlyBudget.toFixed(2)}</p>
+                    <h3 className={`font-semibold ${monthlyBudget ? textColor : 'text-gray-700'}`}>
+                      Family Budget Advisor — {rangeLabel}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {monthlyBudget ? `Family monthly limit: $${monthlyBudget.toFixed(2)}` : 'No budget limit set'}
+                    </p>
                   </div>
-                  <span className={`text-2xl font-bold ${textColor}`}>{pct.toFixed(0)}%</span>
+                  <div className="flex items-center gap-2">
+                    {monthlyBudget && <span className={`text-2xl font-bold ${textColor}`}>{pct.toFixed(0)}%</span>}
+                    <button
+                      onClick={() => { setShowBudgetEdit(!showBudgetEdit); setBudgetInput(monthlyBudget ? String(monthlyBudget) : '') }}
+                      className="text-xs text-indigo-600 hover:underline font-medium border border-indigo-200 rounded-lg px-2 py-1"
+                    >
+                      {monthlyBudget ? 'Edit' : 'Set Budget'}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="h-4 bg-white rounded-full overflow-hidden border border-gray-200 mb-3">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${color}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
+                {/* Budget edit form */}
+                {showBudgetEdit && (
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      type="number"
+                      value={budgetInput}
+                      onChange={e => setBudgetInput(e.target.value)}
+                      min="1" step="0.01" max="9999999"
+                      placeholder="e.g. 3000"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      onClick={saveBudget}
+                      disabled={budgetSaving || !budgetInput}
+                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-lg"
+                    >
+                      {budgetSaving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setShowBudgetEdit(false)}
+                      className="px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
 
-                <div className="flex justify-between text-sm">
-                  <span className={`font-medium ${textColor}`}>{label}</span>
-                  <span className="text-gray-500">
-                    {remaining >= 0
-                      ? <span className="text-gray-700">${remaining.toFixed(2)} remaining</span>
-                      : <span className="text-red-600">Over by ${Math.abs(remaining).toFixed(2)}</span>
-                    }
-                  </span>
-                </div>
-
-                {/* Milestone markers */}
-                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                  {[
-                    { label: 'Spent', value: myExpenses, color: textColor },
-                    { label: 'Budget', value: monthlyBudget, color: 'text-gray-600' },
-                    { label: 'Remaining', value: Math.max(0, remaining), color: remaining >= 0 ? 'text-green-600' : 'text-red-600' },
-                  ].map(item => (
-                    <div key={item.label} className="bg-white rounded-lg p-2 border border-gray-100">
-                      <p className="text-xs text-gray-400">{item.label}</p>
-                      <p className={`text-sm font-bold ${item.color}`}>${item.value.toFixed(2)}</p>
+                {monthlyBudget && (
+                  <>
+                    {/* Progress bar */}
+                    <div className="h-4 bg-white rounded-full overflow-hidden border border-gray-200 mb-3">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${color}`}
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
-                  ))}
-                </div>
+
+                    <div className="flex justify-between text-sm mb-3">
+                      <span className={`font-medium ${textColor}`}>{statusLabel}</span>
+                      <span>
+                        {remaining >= 0
+                          ? <span className="text-gray-700">${remaining.toFixed(2)} remaining</span>
+                          : <span className="text-red-600">Over by ${Math.abs(remaining).toFixed(2)}</span>
+                        }
+                      </span>
+                    </div>
+
+                    {/* Mini stat cards */}
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {[
+                        { label: 'Spent', value: familyExpenses, color: textColor },
+                        { label: 'Budget', value: monthlyBudget, color: 'text-gray-600' },
+                        { label: 'Remaining', value: Math.max(0, remaining), color: remaining >= 0 ? 'text-green-600' : 'text-red-600' },
+                      ].map(item => (
+                        <div key={item.label} className="bg-white rounded-lg p-2 border border-gray-100">
+                          <p className="text-xs text-gray-400">{item.label}</p>
+                          <p className={`text-sm font-bold truncate ${item.color}`}>${item.value.toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )
           })()}
