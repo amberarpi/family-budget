@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { HouseholdProvider } from './contexts/HouseholdContext'
+import { HouseholdProvider, useHousehold } from './contexts/HouseholdContext'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -11,10 +11,53 @@ import ProfilePage from './pages/ProfilePage'
 import BillsPage from './pages/BillsPage'
 import HouseholdPage from './pages/HouseholdPage'
 
-function AppRoutes() {
-  const { user, loading } = useAuth()
+function NoHousehold() {
+  const { signOut } = useAuth()
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
+        <p className="text-2xl mb-2">🏠</p>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">No Household Found</h2>
+        <p className="text-sm text-gray-500 mb-6">Your account is not linked to any household. Please contact your admin to get a valid join code and sign up again.</p>
+        <button onClick={signOut} className="text-sm text-indigo-600 hover:underline">Sign out</button>
+      </div>
+    </div>
+  )
+}
 
-  if (loading) {
+function HouseholdGate() {
+  const { household, loading: householdLoading } = useHousehold()
+
+  if (householdLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!household) return <NoHousehold />
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
+        <Route path="/analysis" element={<AnalysisPage />} />
+        <Route path="/vacation" element={<VacationPage />} />
+        <Route path="/bills" element={<BillsPage />} />
+        <Route path="/household" element={<HouseholdPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Layout>
+  )
+}
+
+function AppRoutes() {
+  const { user, loading: authLoading } = useAuth()
+
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-gray-500">Loading...</div>
@@ -26,18 +69,7 @@ function AppRoutes() {
 
   return (
     <HouseholdProvider>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/transactions" element={<TransactionsPage />} />
-          <Route path="/analysis" element={<AnalysisPage />} />
-          <Route path="/vacation" element={<VacationPage />} />
-          <Route path="/bills" element={<BillsPage />} />
-          <Route path="/household" element={<HouseholdPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
+      <HouseholdGate />
     </HouseholdProvider>
   )
 }

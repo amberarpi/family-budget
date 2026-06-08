@@ -39,13 +39,13 @@ export default function DashboardPage() {
   const [toYear, setToYear] = useState(now.getFullYear())
   const [unpaidBills, setUnpaidBills] = useState([])
 
-  useEffect(() => { fetchData() }, [mode, selectedMonth, selectedYear, fromMonth, fromYear, toMonth, toYear])
-  useEffect(() => { fetchUnpaidBills() }, [selectedMonth, selectedYear])
+  useEffect(() => { fetchData() }, [mode, selectedMonth, selectedYear, fromMonth, fromYear, toMonth, toYear, household])
+  useEffect(() => { if (household?.id) fetchUnpaidBills() }, [selectedMonth, selectedYear, household])
 
   async function fetchUnpaidBills() {
     const [{ data: billRows }, { data: paymentRows }] = await Promise.all([
-      supabase.from('bills').select('*').eq('is_active', true),
-      supabase.from('bill_payments').select('bill_id').eq('month', selectedMonth).eq('year', selectedYear),
+      supabase.from('bills').select('*').eq('is_active', true).eq('household_id', household.id),
+      supabase.from('bill_payments').select('bill_id').eq('month', selectedMonth).eq('year', selectedYear).eq('household_id', household.id),
     ])
     const paidIds = new Set((paymentRows || []).map(p => p.bill_id))
     setUnpaidBills((billRows || []).filter(b => !paidIds.has(b.id)))
@@ -84,19 +84,26 @@ export default function DashboardPage() {
       setProfiles(map)
     }
 
-    // Load family budget
-    const { data: settings } = await supabase.from('family_settings').select('monthly_budget').eq('id', 1).single()
-    if (settings?.monthly_budget) {
-      setMonthlyBudget(Number(settings.monthly_budget))
-      setBudgetInput(String(settings.monthly_budget))
+    // Load family budget scoped to this household
+    if (household?.id) {
+      const { data: settings } = await supabase.from('family_settings').select('monthly_budget').eq('household_id', household.id).single()
+      if (settings?.monthly_budget) {
+        setMonthlyBudget(Number(settings.monthly_budget))
+        setBudgetInput(String(settings.monthly_budget))
+      }
     }
     setLoading(false)
   }
 
   async function saveBudget() {
+    if (!household?.id) return
     setBudgetSaving(true)
     const value = parseFloat(budgetInput)
-    await supabase.from('family_settings').upsert({ id: 1, monthly_budget: value, updated_at: new Date().toISOString() })
+    await supabase.from('family_settings').upsert({
+      household_id: household.id,
+      monthly_budget: value,
+      updated_at: new Date().toISOString()
+    })
     setMonthlyBudget(value)
     setShowBudgetEdit(false)
     setBudgetSaving(false)

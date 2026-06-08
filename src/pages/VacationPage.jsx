@@ -57,14 +57,16 @@ export default function GoalsPage() {
   }
 
   async function handleUpdateSaved(id, amount) {
+    if (!household?.id) return
     const { error } = await supabase.from('vacation_goals')
       .update({ saved_amount: parseFloat(amount) })
       .eq('id', id)
+      .eq('household_id', household.id)
     if (!error) {
       setEditingSaved(null)
       fetchGoals()
     } else {
-      setFetchError(`Failed to update saved amount: ${error.message}`)
+      setFetchError('Failed to update saved amount. Please try again.')
     }
   }
 

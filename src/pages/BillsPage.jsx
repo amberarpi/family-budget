@@ -25,13 +25,13 @@ export default function BillsPage() {
 
   const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
 
-  useEffect(() => { fetchData() }, [selectedMonth, selectedYear])
+  useEffect(() => { if (household?.id) fetchData() }, [selectedMonth, selectedYear, household])
 
   async function fetchData() {
     setLoading(true)
     const [{ data: billRows }, { data: paymentRows }] = await Promise.all([
-      supabase.from('bills').select('*').eq('is_active', true).order('due_day'),
-      supabase.from('bill_payments').select('*').eq('month', selectedMonth).eq('year', selectedYear),
+      supabase.from('bills').select('*').eq('is_active', true).eq('household_id', household.id).order('due_day'),
+      supabase.from('bill_payments').select('*').eq('month', selectedMonth).eq('year', selectedYear).eq('household_id', household.id),
     ])
     setBills(billRows || [])
     setPayments(paymentRows || [])
@@ -108,15 +108,14 @@ export default function BillsPage() {
   }
 
   async function handleMarkUnpaid(bill) {
+    if (!household?.id) return
     const payment = payments.find(p => p.bill_id === bill.id)
     if (!payment) return
 
-    // Delete the linked transaction
     if (payment.transaction_id) {
       await supabase.from('transactions').delete().eq('id', payment.transaction_id).eq('user_id', user.id)
     }
-    // Remove the payment record
-    await supabase.from('bill_payments').delete().eq('id', payment.id)
+    await supabase.from('bill_payments').delete().eq('id', payment.id).eq('household_id', household.id)
     fetchData()
   }
 

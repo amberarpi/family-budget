@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useHousehold } from '../contexts/HouseholdContext'
 import { Home, Copy, CheckCircle, Users, Pencil, Check, X, ShieldCheck } from 'lucide-react'
 
+const SUPABASE_STORAGE = 'supabase.co/storage'
+
 export default function HouseholdPage() {
   const { user } = useAuth()
   const { household, role, refreshHousehold } = useHousehold()
@@ -13,6 +15,7 @@ export default function HouseholdPage() {
   const [newName, setNewName] = useState('')
   const [copied, setCopied] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [confirmRemove, setConfirmRemove] = useState(null) // user_id to confirm removal
 
   useEffect(() => {
     if (household) fetchMembers()
@@ -22,7 +25,7 @@ export default function HouseholdPage() {
     setLoading(true)
     const { data } = await supabase
       .from('household_members')
-      .select('user_id, role, joined_at, profiles(first_name, last_name, avatar_url)')
+      .select('role, joined_at, profiles(first_name, last_name, avatar_url)')
       .eq('household_id', household.id)
     setMembers(data || [])
     setLoading(false)
@@ -35,16 +38,17 @@ export default function HouseholdPage() {
       .from('households')
       .update({ name: newName.trim() })
       .eq('id', household.id)
-    if (error) { setSaveError(error.message); return }
+    if (error) { setSaveError('Failed to rename household. Please try again.'); return }
     setEditingName(false)
     refreshHousehold()
   }
 
   async function handleRemoveMember(userId) {
-    if (userId === user.id) return // can't remove yourself
     await supabase.from('household_members').delete()
       .eq('household_id', household.id)
       .eq('user_id', userId)
+      .eq('role', 'member') // extra guard — cannot remove admins even via direct call
+    setConfirmRemove(null)
     fetchMembers()
   }
 
@@ -57,7 +61,11 @@ export default function HouseholdPage() {
   function getMemberName(member) {
     const p = member.profiles
     if (p?.first_name) return `${p.first_name}${p.last_name ? ' ' + p.last_name : ''}`
-    return member.user_id === user.id ? 'You' : 'Family Member'
+    return 'Family Member'
+  }
+
+  function isSafeAvatarUrl(url) {
+    return url && url.includes(SUPABASE_STORAGE)
   }
 
   if (!household) return (
@@ -74,7 +82,7 @@ export default function HouseholdPage() {
     <div className="max-w-2xl mx-auto p-4 space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Household</h2>
 
-      {/* Household name + join code */}
+      {/* Household name */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-5">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full">
@@ -109,21 +117,28 @@ export default function HouseholdPage() {
           </div>
         </div>
 
-        {/* Join code */}
-        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-          <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-2">Household Join Code</p>
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-bold font-mono text-indigo-800 tracking-widest">{household.join_code}</span>
-            <button
-              onClick={copyCode}
-              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 border border-indigo-200 bg-white rounded-lg px-3 py-1.5 transition-colors"
-            >
-              {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
+        {/* Join code — only visible to admins */}
+        {role === 'admin' && (
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+            <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-2">Household Join Code</p>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold font-mono text-indigo-800 tracking-widest">{household.join_code}</span>
+              <button
+                onClick={copyCode}
+                className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 border border-indigo-200 bg-white rounded-lg px-3 py-1.5 transition-colors"
+              >
+                {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-xs text-indigo-500 mt-2">Share this code with family members so they can join your household when signing up.</p>
           </div>
-          <p className="text-xs text-indigo-500 mt-2">Share this code with family members so they can join your household when signing up.</p>
-        </div>
+        )}
+        {role === 'member' && (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+            <p className="text-xs text-gray-500">Ask your household admin for the join code to share with others.</p>
+          </div>
+        )}
       </div>
 
       {/* Members */}
@@ -142,10 +157,10 @@ export default function HouseholdPage() {
           <p className="text-gray-400 text-sm">Loading...</p>
         ) : (
           <div className="space-y-3">
-            {members.map(member => (
-              <div key={member.user_id} className="flex items-center gap-3">
+            {members.map((member, idx) => (
+              <div key={idx} className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 overflow-hidden flex items-center justify-center shrink-0">
-                  {member.profiles?.avatar_url ? (
+                  {isSafeAvatarUrl(member.profiles?.avatar_url) ? (
                     <img src={member.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-indigo-600 font-semibold text-sm">
@@ -156,7 +171,6 @@ export default function HouseholdPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-gray-900 truncate">{getMemberName(member)}</p>
-                    {member.user_id === user.id && <span className="text-xs text-gray-400">(you)</span>}
                   </div>
                   <p className="text-xs text-gray-400">
                     Joined {new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -169,13 +183,23 @@ export default function HouseholdPage() {
                       Admin
                     </span>
                   )}
-                  {role === 'admin' && member.user_id !== user.id && member.role !== 'admin' && (
-                    <button
-                      onClick={() => handleRemoveMember(member.user_id)}
-                      className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-2 py-0.5 transition-colors"
-                    >
-                      Remove
-                    </button>
+                  {role === 'admin' && member.role === 'member' && (
+                    confirmRemove === idx ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">Sure?</span>
+                        <button onClick={() => handleRemoveMember(member.profiles?.id || idx)}
+                          className="text-xs text-red-600 font-medium hover:underline">Yes</button>
+                        <button onClick={() => setConfirmRemove(null)}
+                          className="text-xs text-gray-400 hover:underline">No</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmRemove(idx)}
+                        className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-2 py-0.5 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )
                   )}
                 </div>
               </div>

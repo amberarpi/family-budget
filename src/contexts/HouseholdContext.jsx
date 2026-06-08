@@ -17,13 +17,13 @@ export function HouseholdProvider({ children }) {
 
   async function loadHousehold() {
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('household_members')
       .select('role, households(id, name, join_code)')
       .eq('user_id', user.id)
       .single()
 
-    if (data) {
+    if (data && !error) {
       setHousehold(data.households)
       setRole(data.role)
     } else {
