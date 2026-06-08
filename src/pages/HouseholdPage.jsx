@@ -23,11 +23,25 @@ export default function HouseholdPage() {
 
   async function fetchMembers() {
     setLoading(true)
-    const { data } = await supabase
+    const { data: memberRows, error } = await supabase
       .from('household_members')
-      .select('user_id, role, joined_at, profiles(first_name, last_name, avatar_url)')
+      .select('user_id, role, joined_at')
       .eq('household_id', household.id)
-    setMembers(data || [])
+
+    if (!error && memberRows?.length) {
+      const userIds = memberRows.map(m => m.user_id)
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .in('id', userIds)
+
+      const profileMap = {}
+      for (const p of profileRows || []) profileMap[p.id] = p
+
+      setMembers(memberRows.map(m => ({ ...m, profiles: profileMap[m.user_id] || null })))
+    } else {
+      setMembers([])
+    }
     setLoading(false)
   }
 
