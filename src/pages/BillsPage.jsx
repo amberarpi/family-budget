@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useHousehold } from '../contexts/HouseholdContext'
 import { EXPENSE_CATEGORIES, MONTHS } from '../lib/constants'
 import { PlusCircle, Trash2, Pencil, Check, X, CheckCircle2, Circle, Receipt } from 'lucide-react'
 
 export default function BillsPage() {
   const { user } = useAuth()
+  const { household } = useHousehold()
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
@@ -44,6 +46,7 @@ export default function BillsPage() {
       category: form.category,
       due_day: parseInt(form.due_day),
       user_id: user.id,
+      household_id: household?.id,
     })
     if (!error) {
       setShowForm(false)
@@ -86,6 +89,7 @@ export default function BillsPage() {
       description: `${bill.name} — bill payment`,
       month: selectedMonth,
       year: selectedYear,
+      household_id: household?.id,
     }).select().single()
 
     if (txError) return
@@ -97,6 +101,7 @@ export default function BillsPage() {
       year: selectedYear,
       paid_at: new Date().toISOString(),
       transaction_id: txData.id,
+      household_id: household?.id,
     })
     setPayingBill(null)
     fetchData()

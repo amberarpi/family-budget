@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { HouseholdProvider } from './contexts/HouseholdContext'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -8,6 +9,7 @@ import AnalysisPage from './pages/AnalysisPage'
 import VacationPage from './pages/VacationPage'
 import ProfilePage from './pages/ProfilePage'
 import BillsPage from './pages/BillsPage'
+import HouseholdPage from './pages/HouseholdPage'
 
 function AppRoutes() {
   const { user, loading } = useAuth()
@@ -23,17 +25,20 @@ function AppRoutes() {
   if (!user) return <LoginPage />
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
-        <Route path="/analysis" element={<AnalysisPage />} />
-        <Route path="/vacation" element={<VacationPage />} />
-        <Route path="/bills" element={<BillsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <HouseholdProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/analysis" element={<AnalysisPage />} />
+          <Route path="/vacation" element={<VacationPage />} />
+          <Route path="/bills" element={<BillsPage />} />
+          <Route path="/household" element={<HouseholdPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </HouseholdProvider>
   )
 }
 

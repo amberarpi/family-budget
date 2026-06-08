@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useHousehold } from '../contexts/HouseholdContext'
 import { PlusCircle, Trash2, Target, PiggyBank, Pencil, X, Check } from 'lucide-react'
 
 export default function GoalsPage() {
   const { user } = useAuth()
+  const { household } = useHousehold()
   const [goals, setGoals] = useState([])
   const [profiles, setProfiles] = useState({}) // { user_id: first_name }
   const [loading, setLoading] = useState(true)
@@ -40,6 +42,7 @@ export default function GoalsPage() {
       ...form,
       target_amount: parseFloat(form.target_amount),
       user_id: user.id,
+      household_id: household?.id,
     })
     if (!error) {
       setShowForm(false)
@@ -61,7 +64,7 @@ export default function GoalsPage() {
       setEditingSaved(null)
       fetchGoals()
     } else {
-      alert(`Failed to update: ${error.message}`)
+      setFetchError(`Failed to update saved amount: ${error.message}`)
     }
   }
 

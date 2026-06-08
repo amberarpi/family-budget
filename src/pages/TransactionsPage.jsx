@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useHousehold } from '../contexts/HouseholdContext'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, MONTHS } from '../lib/constants'
 import { PlusCircle, Trash2, Pencil, X, Check, Filter, Download } from 'lucide-react'
 
 export default function TransactionsPage() {
   const { user } = useAuth()
+  const { household } = useHousehold()
   const [transactions, setTransactions] = useState([])
   const [profiles, setProfiles] = useState({}) // { user_id: first_name }
   const [loading, setLoading] = useState(true)
@@ -87,7 +89,7 @@ export default function TransactionsPage() {
     e.preventDefault()
     setMutateError('')
     const { error } = await supabase.from('transactions').insert({
-      ...form, amount: parseFloat(form.amount), user_id: user.id,
+      ...form, amount: parseFloat(form.amount), user_id: user.id, household_id: household?.id,
     })
     if (error) setMutateError('Failed to save entry. Please try again.')
     else {

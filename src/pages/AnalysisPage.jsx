@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useHousehold } from '../contexts/HouseholdContext'
 import { MONTHS, CATEGORY_COLORS } from '../lib/constants'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
@@ -14,6 +15,7 @@ function monthKey(month, year) {
 }
 
 export default function AnalysisPage() {
+  const { household } = useHousehold()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')

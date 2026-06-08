@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useHousehold } from '../contexts/HouseholdContext'
 import { MONTHS } from '../lib/constants'
 import { TrendingUp, TrendingDown, Wallet, Users, Receipt } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
@@ -15,6 +16,7 @@ function monthKey(month, year) {
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const { household } = useHousehold()
   const [data, setData] = useState([])
   const [profiles, setProfiles] = useState({})
   const [monthlyBudget, setMonthlyBudget] = useState(null)
