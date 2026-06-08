@@ -25,7 +25,7 @@ export default function HouseholdPage() {
     setLoading(true)
     const { data } = await supabase
       .from('household_members')
-      .select('role, joined_at, profiles(first_name, last_name, avatar_url)')
+      .select('user_id, role, joined_at, profiles(first_name, last_name, avatar_url)')
       .eq('household_id', household.id)
     setMembers(data || [])
     setLoading(false)
@@ -61,6 +61,7 @@ export default function HouseholdPage() {
   function getMemberName(member) {
     const p = member.profiles
     if (p?.first_name) return `${p.first_name}${p.last_name ? ' ' + p.last_name : ''}`
+    if (member.user_id === user.id) return 'You'
     return 'Family Member'
   }
 
@@ -157,8 +158,8 @@ export default function HouseholdPage() {
           <p className="text-gray-400 text-sm">Loading...</p>
         ) : (
           <div className="space-y-3">
-            {members.map((member, idx) => (
-              <div key={idx} className="flex items-center gap-3">
+            {members.map((member) => (
+              <div key={member.user_id} className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 overflow-hidden flex items-center justify-center shrink-0">
                   {isSafeAvatarUrl(member.profiles?.avatar_url) ? (
                     <img src={member.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -171,6 +172,7 @@ export default function HouseholdPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-gray-900 truncate">{getMemberName(member)}</p>
+                    {member.user_id === user.id && <span className="text-xs text-gray-400">(you)</span>}
                   </div>
                   <p className="text-xs text-gray-400">
                     Joined {new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -183,18 +185,18 @@ export default function HouseholdPage() {
                       Admin
                     </span>
                   )}
-                  {role === 'admin' && member.role === 'member' && (
-                    confirmRemove === idx ? (
+                  {role === 'admin' && member.user_id !== user.id && member.role === 'member' && (
+                    confirmRemove === member.user_id ? (
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-gray-500">Sure?</span>
-                        <button onClick={() => handleRemoveMember(member.profiles?.id || idx)}
+                        <button onClick={() => handleRemoveMember(member.user_id)}
                           className="text-xs text-red-600 font-medium hover:underline">Yes</button>
                         <button onClick={() => setConfirmRemove(null)}
                           className="text-xs text-gray-400 hover:underline">No</button>
                       </div>
                     ) : (
                       <button
-                        onClick={() => setConfirmRemove(idx)}
+                        onClick={() => setConfirmRemove(member.user_id)}
                         className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-2 py-0.5 transition-colors"
                       >
                         Remove

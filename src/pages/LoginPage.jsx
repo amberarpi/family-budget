@@ -85,7 +85,7 @@ export default function LoginPage() {
                 value={joinCode}
                 onChange={e => setJoinCode(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase tracking-widest font-mono"
-                placeholder="e.g. AMBER001"
+                placeholder="Enter your join code"
                 maxLength={20}
               />
               <p className="text-xs text-gray-400 mt-1">Ask your household admin for the join code</p>

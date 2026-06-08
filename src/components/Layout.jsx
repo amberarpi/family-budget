@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useHousehold } from '../contexts/HouseholdContext'
 import { supabase } from '../lib/supabase'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ArrowLeftRight, PieChart, Target, LogOut, DollarSign, UserCircle, User, Receipt, Home } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, PieChart, Target, LogOut, DollarSign, UserCircle, User, Receipt, Home, Settings } from 'lucide-react'
 
 export default function Layout({ children }) {
   const { user, signOut } = useAuth()
+  const { role } = useHousehold()
   const [firstName, setFirstName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState(null)
 
@@ -31,7 +33,8 @@ export default function Layout({ children }) {
     { to: '/analysis', label: 'Analysis', icon: PieChart },
     { to: '/bills', label: 'Bills', icon: Receipt },
     { to: '/vacation', label: 'Goals', icon: Target },
-    { to: '/household', label: 'Household', icon: Home },
+    { to: '/household', label: 'My Household', icon: Home },
+    ...(role === 'admin' ? [{ to: '/manage-households', label: 'Manage', icon: Settings }] : []),
     { to: '/profile', label: 'Profile', icon: UserCircle },
   ]
 
@@ -46,7 +49,6 @@ export default function Layout({ children }) {
             <span className="font-bold text-gray-900 text-lg">Welcome, {firstName}</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* Avatar */}
             <NavLink to="/profile" className="shrink-0">
               <div className="w-8 h-8 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center border-2 border-indigo-200">
                 {avatarUrl ? (

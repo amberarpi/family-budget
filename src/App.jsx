@@ -10,6 +10,7 @@ import VacationPage from './pages/VacationPage'
 import ProfilePage from './pages/ProfilePage'
 import BillsPage from './pages/BillsPage'
 import HouseholdPage from './pages/HouseholdPage'
+import ManageHouseholdsPage from './pages/ManageHouseholdsPage'
 
 function NoHousehold() {
   const { signOut } = useAuth()
@@ -47,6 +48,7 @@ function HouseholdGate() {
         <Route path="/vacation" element={<VacationPage />} />
         <Route path="/bills" element={<BillsPage />} />
         <Route path="/household" element={<HouseholdPage />} />
+        <Route path="/manage-households" element={<ManageHouseholdsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
