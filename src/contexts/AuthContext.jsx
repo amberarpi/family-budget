@@ -13,7 +13,9 @@ export function AuthProvider({ children }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Don't update user state on PASSWORD_RECOVERY — let reset page handle it
+      if (event === 'PASSWORD_RECOVERY') return
       setUser(session?.user ?? null)
     })
 

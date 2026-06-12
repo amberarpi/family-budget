@@ -30,6 +30,12 @@ function NoHousehold() {
 function HouseholdGate() {
   const { household, loading: householdLoading } = useHousehold()
 
+  // If this is a password recovery redirect, show reset page regardless of household
+  if (window.location.hash.includes('type=recovery') ||
+      window.location.pathname.includes('reset-password')) {
+    return <ResetPasswordPage />
+  }
+
   if (householdLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
