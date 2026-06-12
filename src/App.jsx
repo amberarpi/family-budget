@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage'
 import BillsPage from './pages/BillsPage'
 import HouseholdPage from './pages/HouseholdPage'
 import ManageHouseholdsPage from './pages/ManageHouseholdsPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function NoHousehold() {
   const { signOut } = useAuth()
@@ -67,7 +68,12 @@ function AppRoutes() {
     )
   }
 
-  if (!user) return <LoginPage />
+  if (!user) return (
+    <Routes>
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="*" element={<LoginPage />} />
+    </Routes>
+  )
 
   return (
     <HouseholdProvider>
