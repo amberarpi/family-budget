@@ -45,6 +45,7 @@ export default function TransactionsPage() {
     setLoading(true)
     setFetchError('')
     let query = supabase.from('transactions').select('*')
+      .eq('household_id', household?.id)
 
     if (mode === 'single') {
       query = query.eq('month', selectedMonth).eq('year', selectedYear)

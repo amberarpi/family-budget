@@ -51,9 +51,8 @@ export default function ManageHouseholdsPage() {
     if (!newName.trim()) return
     setCreating(true)
 
-    // Generate a random join code
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase() +
-                 Math.random().toString(36).substring(2, 6).toUpperCase()
+    // Generate a cryptographically secure random join code (12 chars, uppercase)
+    const code = crypto.randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()
 
     const { error } = await supabase.from('households').insert({
       name: newName.trim(),

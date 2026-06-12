@@ -56,6 +56,7 @@ export default function DashboardPage() {
     setFetchError('')
 
     let query = supabase.from('transactions').select('*')
+      .eq('household_id', household?.id)
 
     if (mode === 'single') {
       query = query.eq('month', selectedMonth).eq('year', selectedYear)
