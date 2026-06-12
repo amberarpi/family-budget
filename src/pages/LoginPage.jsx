@@ -42,15 +42,23 @@ export default function LoginPage() {
       }
 
       // Add to household as member
-      if (signUpData?.user) {
-        await supabase.from('household_members').insert({
+      // signUpData.user is available immediately when email confirmation is disabled
+      const userId = signUpData?.user?.id
+      if (userId) {
+        const { error: memberError } = await supabase.from('household_members').insert({
           household_id: household.id,
-          user_id: signUpData.user.id,
+          user_id: userId,
           role: 'member',
         })
+        if (memberError) {
+          setError('Account created but failed to join household. Please contact your admin.')
+          setLoading(false)
+          return
+        }
+        setMessage(`Welcome! You've joined "${household.name}". You can now sign in.`)
+      } else {
+        setMessage(`Account created! You've joined "${household.name}". Check your email to confirm, then sign in.`)
       }
-
-      setMessage(`Account created! You've joined "${household.name}". Check your email to confirm your account, then sign in.`)
     } else {
       const { error } = await signIn(email, password)
       if (error) setError(error.message)
