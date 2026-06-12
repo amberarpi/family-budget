@@ -132,28 +132,21 @@ export default function HouseholdPage() {
           </div>
         </div>
 
-        {/* Join code — only visible to admins */}
-        {role === 'admin' && (
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-            <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-2">Household Join Code</p>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold font-mono text-indigo-800 tracking-widest">{household.join_code}</span>
-              <button
-                onClick={copyCode}
-                className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 border border-indigo-200 bg-white rounded-lg px-3 py-1.5 transition-colors"
-              >
-                {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-            <p className="text-xs text-indigo-500 mt-2">Share this code with family members so they can join your household when signing up.</p>
+        {/* Join code — visible to all members so they can invite others */}
+        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+          <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-2">Household Join Code</p>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-bold font-mono text-indigo-800 tracking-widest">{household.join_code}</span>
+            <button
+              onClick={copyCode}
+              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 border border-indigo-200 bg-white rounded-lg px-3 py-1.5 transition-colors"
+            >
+              {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
           </div>
-        )}
-        {role === 'member' && (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500">Ask your household admin for the join code to share with others.</p>
-          </div>
-        )}
+          <p className="text-xs text-indigo-500 mt-2">Share this code with family members so they can join your household when signing up.</p>
+        </div>
       </div>
 
       {/* Members */}
