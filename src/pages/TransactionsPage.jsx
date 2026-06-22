@@ -13,7 +13,12 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [mutateError, setMutateError] = useState('')
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(() => sessionStorage.getItem('transactions_showForm') === 'true')
+
+  function toggleForm(val) {
+    sessionStorage.setItem('transactions_showForm', val)
+    setShowForm(val)
+  }
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({})
 
@@ -94,7 +99,7 @@ export default function TransactionsPage() {
     })
     if (error) setMutateError('Failed to save entry. Please try again.')
     else {
-      setShowForm(false)
+      toggleForm(false)
       setForm({ type: 'expense', category: '', amount: '', description: '', month: selectedMonth, year: selectedYear })
       fetchTransactions()
     }
@@ -179,7 +184,7 @@ export default function TransactionsPage() {
                 Date Range
               </button>
             </div>
-            <button onClick={() => setShowForm(!showForm)}
+            <button onClick={() => toggleForm(!showForm)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <PlusCircle size={16} />
               Add Entry
@@ -285,7 +290,7 @@ export default function TransactionsPage() {
                 placeholder="e.g. Whole Foods run" maxLength={200} />
             </div>
             <div className="sm:col-span-2 flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowForm(false)}
+              <button type="button" onClick={() => toggleForm(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 Cancel
               </button>

@@ -11,7 +11,12 @@ export default function GoalsPage() {
   const [profiles, setProfiles] = useState({}) // { user_id: first_name }
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(() => sessionStorage.getItem('goals_showForm') === 'true')
+
+  function toggleForm(val) {
+    sessionStorage.setItem('goals_showForm', val)
+    setShowForm(val)
+  }
   const [editingSaved, setEditingSaved] = useState(null)
   const [editingGoal, setEditingGoal] = useState(null)
   const [editForm, setEditForm] = useState({})
@@ -45,7 +50,7 @@ export default function GoalsPage() {
       household_id: household?.id,
     })
     if (!error) {
-      setShowForm(false)
+      toggleForm(false)
       setForm({ name: '', destination: '', target_amount: '', target_date: '' })
       fetchGoals()
     }
@@ -121,7 +126,7 @@ export default function GoalsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Future Goals</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => toggleForm(!showForm)}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <PlusCircle size={16} />
@@ -179,7 +184,7 @@ export default function GoalsPage() {
               />
             </div>
             <div className="sm:col-span-2 flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowForm(false)}
+              <button type="button" onClick={() => toggleForm(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Cancel
               </button>

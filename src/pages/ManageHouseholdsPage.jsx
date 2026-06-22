@@ -9,7 +9,12 @@ export default function ManageHouseholdsPage() {
   const { role } = useHousehold()
   const [households, setHouseholds] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(() => sessionStorage.getItem('households_showForm') === 'true')
+
+  function toggleForm(val) {
+    sessionStorage.setItem('households_showForm', val)
+    setShowForm(val)
+  }
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -62,7 +67,7 @@ export default function ManageHouseholdsPage() {
 
     if (!error) {
       setNewName('')
-      setShowForm(false)
+      toggleForm(false)
       fetchHouseholds()
     }
     setCreating(false)
@@ -95,7 +100,7 @@ export default function ManageHouseholdsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Manage Households</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => toggleForm(!showForm)}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <PlusCircle size={16} />
@@ -129,7 +134,7 @@ export default function ManageHouseholdsPage() {
             </button>
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => toggleForm(false)}
               className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Cancel
