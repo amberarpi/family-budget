@@ -16,7 +16,12 @@ export default function BillsPage() {
   const [payments, setPayments] = useState([]) // bill_payments for selected month
   const [loading, setLoading] = useState(true)
 
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(() => sessionStorage.getItem('bills_showForm') === 'true')
+
+  function toggleForm(val) {
+    sessionStorage.setItem('bills_showForm', val)
+    setShowForm(val)
+  }
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ name: '', amount: '', category: 'Utilities', due_day: '1' })
   const [editForm, setEditForm] = useState({})
@@ -49,7 +54,7 @@ export default function BillsPage() {
       household_id: household?.id,
     })
     if (!error) {
-      setShowForm(false)
+      toggleForm(false)
       setForm({ name: '', amount: '', category: 'Utilities', due_day: '1' })
       fetchData()
     }
@@ -147,7 +152,7 @@ export default function BillsPage() {
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button onClick={() => setShowForm(!showForm)}
+          <button onClick={() => toggleForm(!showForm)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <PlusCircle size={16} />
             Add Bill
@@ -204,7 +209,7 @@ export default function BillsPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
             <div className="sm:col-span-2 flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowForm(false)}
+              <button type="button" onClick={() => toggleForm(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Cancel
               </button>
