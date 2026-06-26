@@ -158,12 +158,12 @@ export default function DashboardPage() {
     ? `${monthKey(fromMonth, fromYear)} – ${monthKey(toMonth, toYear)}`
     : `${MONTHS[selectedMonth - 1]} ${selectedYear}`
 
-  const StatCard = ({ title, value, icon: Icon, color }) => (
+  const StatCard = ({ title, value, icon: Icon, color, signed = false }) => (
     <div className="bg-white border rounded-xl p-3 sm:p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide truncate">{title}</p>
-          <p className={`text-lg sm:text-3xl font-bold mt-1 truncate ${color}`}>${Math.abs(value).toFixed(2)}</p>
+          <p className={`text-lg sm:text-3xl font-bold mt-1 truncate ${color}`}>{signed && value < 0 ? '-' : ''}${Math.abs(value).toFixed(2)}</p>
         </div>
         <div className={`p-2 rounded-lg shrink-0 ml-2 ${color === 'text-green-600' ? 'bg-green-100' : color === 'text-red-600' ? 'bg-red-100' : 'bg-indigo-100'}`}>
           <Icon size={18} className={color} />
@@ -240,7 +240,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard title="Total Income" value={totalIncome} icon={TrendingUp} color="text-green-600" />
             <StatCard title="Total Expenses" value={totalExpenses} icon={TrendingDown} color="text-red-600" />
-            <StatCard title="Net Savings" value={net} icon={Wallet} color={net >= 0 ? 'text-indigo-600' : 'text-orange-600'} />
+            <StatCard title="Net Savings" value={net} icon={Wallet} color={net >= 0 ? 'text-indigo-600' : 'text-orange-600'} signed />
             <div className="bg-white border rounded-xl p-3 sm:p-5 shadow-sm">
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
